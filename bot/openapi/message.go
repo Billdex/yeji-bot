@@ -7,6 +7,9 @@ import (
 	"time"
 )
 
+// 发送消息协议
+// https://bot.q.qq.com/wiki/develop/api-v2/server-inter/message/send-receive/send.html
+
 type MsgType int
 
 const (
@@ -18,11 +21,11 @@ const (
 )
 
 type PostGroupMessageReq struct {
-	Content string  `json:"content"`
-	MsgType MsgType `json:"msg_type"`
-	Media   Media   `json:"media"`
-	MsgId   string  `json:"msg_id"`
-	MsgSeq  int     `json:"msg_seq"`
+	Content string  `json:"content"`  // 消息文本内容
+	MsgType MsgType `json:"msg_type"` // 消息类型
+	Media   Media   `json:"media"`    // 富媒体消息，MsgType 为  MsgTypeMedia(7) 时可用
+	MsgId   string  `json:"msg_id"`   // 前置收到的用户发送过来的消息 ID，用于发送被动消息（回复）
+	MsgSeq  int     `json:"msg_seq"`  // 回复消息的序号，与 msg_id 联合使用，避免相同消息id回复重复发送，不填默认是 1。相同的 msg_id + msg_seq 重复发送会失败。
 }
 
 type Media struct {

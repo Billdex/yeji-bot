@@ -69,16 +69,14 @@ func (o *Openapi) request(ctx context.Context, request Request, response Respons
 	if err != nil {
 		return err
 	}
-	logrus.Infof("req body: %s", string(byteBody))
 	req, err := http.NewRequest(request.Method(), o.getURL(request.URI(), pathParams), bytes.NewReader(byteBody))
 	if err != nil {
 		return err
 	}
-	logrus.Infof("url: %s", req.URL)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", fmt.Sprintf("QQBot %s", o.accessToken))
 	req.Header.Set("X-Union-Appid", fmt.Sprintf("%d", o.appID))
-	logrus.Infof("header: %+v", req.Header)
+	startAt := time.Now()
 	resp, err := o.httpClient.Do(req.WithContext(ctx))
 	if err != nil {
 		return err
@@ -95,7 +93,7 @@ func (o *Openapi) request(ctx context.Context, request Request, response Respons
 	if err != nil {
 		return err
 	}
-	logrus.Infof("resp body: %s", string(byteRespBody))
+	logrus.Infof("openapi request. url: %s, t: %s, req_body: %s, resp_body: %s", req.URL, time.Now().Sub(startAt).String(), string(byteBody), string(byteRespBody))
 	err = response.Unmarshal(byteRespBody)
 	if err != nil {
 		return err

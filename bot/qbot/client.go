@@ -9,9 +9,10 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 	"net/http"
+	"reflect"
 	"runtime"
 	"time"
-	"yeji-bot/qbot/openapi"
+	"yeji-bot/bot/openapi"
 )
 
 type Client struct {
@@ -20,7 +21,7 @@ type Client struct {
 	session    *Session
 	api        *openapi.Openapi
 
-	handlers *EventHandlers
+	eventHandlers *EventHandlers
 
 	messageQueue    chan *WSPayload
 	closeErrChan    chan error
@@ -55,7 +56,7 @@ func New(appID uint64, token string, clientSecret string, intent Intent, sandbox
 		session:    session,
 		api:        api,
 
-		handlers:        &EventHandlers{},
+		eventHandlers:   &EventHandlers{},
 		messageQueue:    make(chan *WSPayload, 1000),
 		closeErrChan:    make(chan error, 10),
 		heartBeatTicker: time.NewTicker(10 * time.Second),
@@ -79,7 +80,6 @@ func (c *Client) Start() (err error) {
 			logrus.Errorf("try identify fail. err: %v", err)
 			continue
 		}
-		logrus.Infof("identify success, start listening. session: %+v", *c.session)
 		reconnectCnt = 0
 		err = c.listening()
 		if err != nil {
@@ -103,7 +103,6 @@ func (c *Client) connect() (err error) {
 }
 
 func (c *Client) listening() error {
-
 	go c.recvMessage()
 
 	for {
@@ -148,7 +147,7 @@ func (c *Client) recvMessage() {
 		if err != nil {
 			logrus.Errorf("read message fail. err:%v", err)
 			c.closeErrChan <- err
-			continue
+			return
 		}
 		payload := &WSPayload{}
 		err = json.Unmarshal(message, payload)
@@ -162,12 +161,21 @@ func (c *Client) recvMessage() {
 		}
 		logrus.Infof("recv data. op: %d %s. raw message: %s", payload.OPCode, OPMeans(payload.OPCode), string(message))
 
-		err = c.parseAndHandle(payload)
-		if err != nil {
-			logrus.Errorf("parseAndHandle fail. err: %v", err)
-			continue
-		}
-
+		go func() {
+			defer func() {
+				if e := recover(); e != nil {
+					buf := make([]byte, 2048)
+					buf = buf[:runtime.Stack(buf, false)]
+					logrus.Errorf("[recvMessage.go] panic. session: %+v. payload: %+v. err: %v, stack: %s", *c.session, payload, e, buf)
+					c.closeErrChan <- fmt.Errorf("parseAndHandle payload panic: %v", e)
+					return
+				}
+			}()
+			err = c.parseAndHandle(payload)
+			if err != nil {
+				logrus.Errorf("parseAndHandle fail. err: %v", err)
+			}
+		}()
 	}
 
 }
@@ -199,6 +207,24 @@ func (c *Client) Identify() error {
 	return c.Write(payload)
 }
 
+func (c *Client) RegisterHandlerScheduler(schedulers ...interface{}) {
+	for _, s := range schedulers {
+		switch s.(type) {
+		case IDefaultHandlerScheduler:
+			c.eventHandlers.DefaultHandler = s.(IDefaultHandlerScheduler).Handler()
+			logrus.Info("register DefaultHandlerScheduler success")
+		case IReadyHandlerScheduler:
+			c.eventHandlers.ReadyHandler = s.(IReadyHandlerScheduler).Handler()
+			logrus.Info("register ReadyHandlerScheduler success")
+		case IGroupAtMessageHandlerScheduler:
+			logrus.Info("register GroupAtMessageHandlerScheduler success")
+			c.eventHandlers.GroupAtMessageHandler = s.(IGroupAtMessageHandlerScheduler).Handler()
+		default:
+			logrus.Warnf("register unknown handler schcheduler :%s", reflect.TypeOf(s).Name())
+		}
+	}
+}
+
 type eventParseFunc func(*Client, *WSPayload) error
 
 var eventParseFuncMap = map[OPCode]map[EventType]eventParseFunc{
@@ -225,8 +251,8 @@ func (c *Client) parseAndHandle(payload *WSPayload) error {
 	if has {
 		return handler(c, payload)
 	}
-	if c.handlers.DefaultHandler != nil {
-		return c.handlers.DefaultHandler(c.api, payload)
+	if c.eventHandlers.DefaultHandler != nil {
+		return c.eventHandlers.DefaultHandler(c.api, payload)
 	}
 	return nil
 }
@@ -268,8 +294,8 @@ func (c *Client) readyHandler(payload *WSPayload) error {
 	c.session.User.ID = readyData.User.ID
 	c.session.User.Username = readyData.User.Username
 
-	if c.handlers.ReadyHandler != nil {
-		return c.handlers.ReadyHandler(c.api, payload, readyData)
+	if c.eventHandlers.ReadyHandler != nil {
+		return c.eventHandlers.ReadyHandler(c.api, payload, readyData)
 	}
 	return nil
 }
@@ -280,8 +306,9 @@ func (c *Client) groupAtMessageHandler(payload *WSPayload) error {
 	if err != nil {
 		return errors.Wrap(err, "parse group at message data fail")
 	}
-	if c.handlers.GroupAtMessageHandler != nil {
-		return c.handlers.GroupAtMessageHandler(c.api, payload, groupAtMessageData)
+	groupAtMessageData.WSPayloadBase = payload.WSPayloadBase
+	if c.eventHandlers.GroupAtMessageHandler != nil {
+		return c.eventHandlers.GroupAtMessageHandler(c.api, payload, groupAtMessageData)
 	}
 	return nil
 }

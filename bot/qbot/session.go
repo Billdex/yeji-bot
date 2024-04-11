@@ -23,6 +23,10 @@ type Session struct {
 	URL     string
 	Token   Token
 	Intent  Intent
-	LastSeq uint32
+	LastSeq int
 	User    LoginUser
+}
+
+func (s Session) String() string {
+	return fmt.Sprintf("{ID:%s, URL:%s, Intent:%d, LastSeq:%d, User:{ID:%s, Username:%s}}", s.ID, s.URL, s.Intent, s.LastSeq, s.User.ID, s.User.Username)
 }
