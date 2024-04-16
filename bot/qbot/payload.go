@@ -23,21 +23,23 @@ type WSPayloadBase struct {
 
 // WSIdentityData 鉴权数据
 type WSIdentityData struct {
-	Token      string   `json:"token"`
-	Intents    Intent   `json:"intents"`
-	Shard      []uint32 `json:"shard"` // array of two integers (shard_id, num_shards)
-	Properties struct {
-		Os      string `json:"$os,omitempty"`
-		Browser string `json:"$browser,omitempty"`
-		Device  string `json:"$device,omitempty"`
-	} `json:"properties,omitempty"`
+	Token      string             `json:"token"`
+	Intents    Intent             `json:"intents"`
+	Shard      []uint32           `json:"shard"` // array of two integers (shard_id, num_shards)
+	Properties IdentityProperties `json:"properties,omitempty"`
+}
+
+type IdentityProperties struct {
+	Os      string `json:"$os,omitempty"`
+	Browser string `json:"$browser,omitempty"`
+	Device  string `json:"$device,omitempty"`
 }
 
 // WSResumeData 重连数据
 type WSResumeData struct {
 	Token     string `json:"token"`
 	SessionID string `json:"session_id"`
-	Seq       uint32 `json:"seq"`
+	Seq       int    `json:"seq"`
 }
 
 // 以下为会收到的事件data

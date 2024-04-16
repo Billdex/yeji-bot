@@ -1,0 +1,11 @@
+[bot]
+app_id = 123456             # 腾讯开放平台后台获取的机器人 app_id
+bot_token = xxx             # 腾讯开放平台后台获取的 bot_token
+app_secret = xxx            # 腾讯开放平台后台获取的 app_secret
+sandbox = false             # 是否使用沙盒环境
+admin_groups = xxx          # 管理员可以处理管理功能的群组的 openid
+admin_users = xxx           # 管理员的 openid
+
+
+[db]
+dsn = user:password@tcp(host:port)/db?parseTime=true&loc=Asia%2FShanghai&readTimeout=10s&writeTimeout=10s   # 数据库连接的 dsn

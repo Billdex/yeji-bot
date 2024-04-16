@@ -28,8 +28,8 @@ type Client struct {
 	heartBeatTicker *time.Ticker
 }
 
-func New(appID uint64, token string, clientSecret string, intent Intent, sandbox bool) (*Client, error) {
-	api, err := openapi.New(appID, clientSecret, sandbox)
+func New(appID uint64, token string, appSecret string, intent Intent, sandbox bool) (*Client, error) {
+	api, err := openapi.New(appID, appSecret, sandbox)
 	if err != nil {
 		return nil, errors.Wrap(err, "new openapi fail")
 	}
@@ -66,9 +66,7 @@ func New(appID uint64, token string, clientSecret string, intent Intent, sandbox
 func (c *Client) Start() (err error) {
 	reconnectCnt := 0
 	for reconnectCnt < 5 {
-		if reconnectCnt != 0 {
-			time.Sleep(3 * time.Second) // 3秒内最多尝试重连一次
-		}
+		time.Sleep(5 * time.Second) // 5秒内最多尝试连接一次
 		reconnectCnt++
 		err = c.connect()
 		if err != nil {
@@ -121,6 +119,10 @@ func (c *Client) listening() error {
 			}
 		case err := <-c.closeErrChan:
 			logrus.Errorf("close err chan. err: %v", err)
+			err = c.conn.Close()
+			if err != nil {
+				logrus.Errorf("close websocket fail. err: %v", err)
+			}
 			return err
 		}
 	}
@@ -207,6 +209,20 @@ func (c *Client) Identify() error {
 	return c.Write(payload)
 }
 
+func (c *Client) Resume() error {
+	payload := &WSPayload{
+		WSPayloadBase: WSPayloadBase{
+			OPCode: OPCodeIdentity,
+		},
+		Data: WSResumeData{
+			Token:     c.session.Token.String(),
+			SessionID: c.session.ID,
+			Seq:       c.session.LastSeq,
+		},
+	}
+	return c.Write(payload)
+}
+
 func (c *Client) RegisterHandlerScheduler(schedulers ...interface{}) {
 	for _, s := range schedulers {
 		switch s.(type) {
@@ -263,6 +279,18 @@ func (c *Client) helloHandler(payload *WSPayload) error {
 	if err != nil {
 		return errors.Wrap(err, "parse hello data fail")
 	}
+	// 根据情况决定是重新鉴权还是发起重连
+	if c.session.ID != "" {
+		err = c.Resume()
+		if err != nil {
+			return errors.Wrap(err, "send resume fail")
+		}
+	} else {
+		err = c.Identify()
+		if err != nil {
+			return errors.Wrap(err, "send identify fail")
+		}
+	}
 	c.heartBeatTicker.Reset(time.Duration(helloData.HeartbeatInterval) * time.Millisecond)
 	return nil
 }
@@ -275,6 +303,8 @@ func (c *Client) reconnectHandler(payload *WSPayload) error {
 }
 
 func (c *Client) invalidSessionHandler(payload *WSPayload) error {
+	c.session.ID = ""
+	c.session.LastSeq = 0
 	c.closeErrChan <- errors.New("invalid session")
 	return nil
 }
