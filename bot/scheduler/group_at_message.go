@@ -2,6 +2,8 @@ package scheduler
 
 import (
 	"context"
+	"github.com/sirupsen/logrus"
+	"runtime"
 	"strings"
 	"yeji-bot/bot/openapi"
 	"yeji-bot/bot/qbot"
@@ -86,16 +88,25 @@ func (s *GroupAtMessageHandlerScheduler) match(cmd string) *CmdHandler {
 
 func (s *GroupAtMessageHandlerScheduler) Handler() qbot.GroupAtMessageHandler {
 	return func(api *openapi.Openapi, event *qbot.WSPayload, msg *qbot.WSGroupAtMessageData) (err error) {
-		msg.Content = strings.TrimSpace(msg.Content)
-		cmdHandler := s.match(msg.Content)
-		ms := make([]GroupAtMessageHandlerMiddleware, 0, len(s.globalMiddlewares)+len(cmdHandler.middlewares))
-		ms = append(append(ms, s.globalMiddlewares...), cmdHandler.middlewares...)
-		chainHandler := chain(ms...)(cmdHandler.handler)
-		ctx := context.Background()
-		err = chainHandler(ctx, api, msg)
-		if err != nil {
-			return err
-		}
+		go func() {
+			defer func() {
+				if e := recover(); err != nil {
+					buf := make([]byte, 4096)
+					buf = buf[:runtime.Stack(buf, false)]
+					logrus.Errorf("[GroupAtMessageHandlerScheduler.Handler] panic. err: %v, event: %+v, msg: %+v, stack: %s", e, *event, *msg, string(buf))
+				}
+			}()
+			msg.Content = strings.TrimSpace(msg.Content)
+			cmdHandler := s.match(msg.Content)
+			ms := make([]GroupAtMessageHandlerMiddleware, 0, len(s.globalMiddlewares)+len(cmdHandler.middlewares))
+			ms = append(append(ms, s.globalMiddlewares...), cmdHandler.middlewares...)
+			chainHandler := chain(ms...)(cmdHandler.handler)
+			ctx := context.Background()
+			err = chainHandler(ctx, api, msg)
+			if err != nil {
+				logrus.Infof("[GroupAtMessageHandlerScheduler.Handler] do chainHandler() fail. err: %v", err)
+			}
+		}()
 
 		return nil
 	}

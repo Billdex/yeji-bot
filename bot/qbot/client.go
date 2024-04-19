@@ -73,11 +73,6 @@ func (c *Client) Start() (err error) {
 			logrus.Errorf("try connect fail. err: %v", err)
 			continue
 		}
-		err = c.Identify()
-		if err != nil {
-			logrus.Errorf("try identify fail. err: %v", err)
-			continue
-		}
 		reconnectCnt = 0
 		err = c.listening()
 		if err != nil {
@@ -92,6 +87,7 @@ func (c *Client) connect() (err error) {
 	if c.session.URL == "" {
 		return errors.New("invalid ws ap url")
 	}
+	c.closeErrChan = make(chan error, 10)
 	c.conn, _, err = websocket.DefaultDialer.Dial(c.session.URL, nil)
 	if err != nil {
 		return errors.Wrap(err, "dial err")
@@ -147,8 +143,7 @@ func (c *Client) recvMessage() {
 	for {
 		_, message, err := c.conn.ReadMessage()
 		if err != nil {
-			logrus.Errorf("read message fail. err:%v", err)
-			c.closeErrChan <- err
+			c.closeErrChan <- errors.Wrap(err, "read message fail")
 			return
 		}
 		payload := &WSPayload{}
@@ -163,21 +158,11 @@ func (c *Client) recvMessage() {
 		}
 		logrus.Infof("recv data. op: %d %s. raw message: %s", payload.OPCode, OPMeans(payload.OPCode), string(message))
 
-		go func() {
-			defer func() {
-				if e := recover(); e != nil {
-					buf := make([]byte, 2048)
-					buf = buf[:runtime.Stack(buf, false)]
-					logrus.Errorf("[recvMessage.go] panic. session: %+v. payload: %+v. err: %v, stack: %s", *c.session, payload, e, buf)
-					c.closeErrChan <- fmt.Errorf("parseAndHandle payload panic: %v", e)
-					return
-				}
-			}()
-			err = c.parseAndHandle(payload)
-			if err != nil {
-				logrus.Errorf("parseAndHandle fail. err: %v", err)
-			}
-		}()
+		err = c.parseAndHandle(payload)
+		if err != nil {
+			logrus.Errorf("parseAndHandle fail. err: %v", err)
+		}
+
 	}
 
 }
@@ -204,6 +189,11 @@ func (c *Client) Identify() error {
 			Token:   c.session.Token.String(),
 			Intents: c.session.Intent,
 			Shard:   []uint32{0, 1}, // 不分片
+			Properties: IdentityProperties{
+				Os:      runtime.GOOS,
+				Browser: "qbot",
+				Device:  "qbot",
+			},
 		},
 	}
 	return c.Write(payload)
@@ -212,7 +202,7 @@ func (c *Client) Identify() error {
 func (c *Client) Resume() error {
 	payload := &WSPayload{
 		WSPayloadBase: WSPayloadBase{
-			OPCode: OPCodeIdentity,
+			OPCode: OPCodeResume,
 		},
 		Data: WSResumeData{
 			Token:     c.session.Token.String(),
