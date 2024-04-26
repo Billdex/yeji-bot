@@ -21,13 +21,13 @@ const (
 )
 
 type PostGroupMessageReq struct {
-	Content  string   `json:"content"`  // 消息文本内容
-	MsgType  MsgType  `json:"msg_type"` // 消息类型
-	Markdown Markdown `json:"markdown"` // markdown 格式消息，MsgType 为  MsgTypeMarkdown(2) 时可用
-	Keyboard Keyboard `json:"keyboard"` // 消息按钮，放在文字内容底部
-	Media    Media    `json:"media"`    // 富媒体消息，MsgType 为  MsgTypeMedia(7) 时可用
-	MsgId    string   `json:"msg_id"`   // 前置收到的用户发送过来的消息 ID，用于发送被动消息（回复）
-	MsgSeq   int      `json:"msg_seq"`  // 回复消息的序号，与 msg_id 联合使用，避免相同消息id回复重复发送，不填默认是 1。相同的 msg_id + msg_seq 重复发送会失败。
+	Content  string    `json:"content"`            // 消息文本内容
+	MsgType  MsgType   `json:"msg_type"`           // 消息类型
+	Markdown *Markdown `json:"markdown,omitempty"` // markdown 格式消息，MsgType 为  MsgTypeMarkdown(2) 时可用
+	Keyboard *Keyboard `json:"keyboard,omitempty"` // 消息按钮，放在文字内容底部
+	Media    Media     `json:"media"`              // 富媒体消息，MsgType 为  MsgTypeMedia(7) 时可用
+	MsgId    string    `json:"msg_id"`             // 前置收到的用户发送过来的消息 ID，用于发送被动消息（回复）
+	MsgSeq   int       `json:"msg_seq"`            // 回复消息的序号，与 msg_id 联合使用，避免相同消息id回复重复发送，不填默认是 1。相同的 msg_id + msg_seq 重复发送会失败。
 }
 
 type Markdown struct {

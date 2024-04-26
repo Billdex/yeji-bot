@@ -1,0 +1,31 @@
+CREATE TABLE `chef`
+(
+    `chef_id`        int NOT NULL COMMENT '厨师id',
+    `name`           varchar(30) DEFAULT NULL COMMENT '厨师',
+    `gender`         int         DEFAULT NULL COMMENT '性别 1:男 2:女',
+    `rarity`         int         DEFAULT NULL COMMENT '稀有度',
+    `origins`        varchar(60) COMMENT '获得来源列表',
+    `gallery_id`     varchar(20) COMMENT '图鉴id',
+    `stirfry`        int         DEFAULT NULL COMMENT '炒技法数值',
+    `bake`           int         DEFAULT NULL COMMENT '烤技法数值',
+    `boil`           int         DEFAULT NULL COMMENT '煮技法数值',
+    `steam`          int         DEFAULT NULL COMMENT '蒸技法数值',
+    `fry`            int         DEFAULT NULL COMMENT '炸技法数值',
+    `cut`            int         DEFAULT NULL COMMENT '切技法数值',
+    `meat`           int         DEFAULT NULL COMMENT '肉类采集数值',
+    `flour`          int         DEFAULT NULL COMMENT '面类采集数值',
+    `fish`           int         DEFAULT NULL COMMENT '鱼类采集数值',
+    `vegetable`      int         DEFAULT NULL COMMENT '菜类采集数值',
+    `skill_id`       int         DEFAULT NULL COMMENT '技能 id',
+    `ultimate_goals` varchar(30) COMMENT '修炼任务id数组',
+    `ultimate_skill` int         DEFAULT NULL COMMENT '修炼技能',
+    `sweet`          int         DEFAULT NULL COMMENT '甜调味数值',
+    `sour`           int         DEFAULT NULL COMMENT '酸调味数值',
+    `spicy`          int         DEFAULT NULL COMMENT '辣调味数值',
+    `salty`          int         DEFAULT NULL COMMENT '咸调味数值',
+    `bitter`         int         DEFAULT NULL COMMENT '苦调味数值',
+    `tasty`          int         DEFAULT NULL COMMENT '鲜调味数值',
+    PRIMARY KEY (`chef_id`),
+    KEY `uniq_gallery_id` (`gallery_id`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4;

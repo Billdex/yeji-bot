@@ -9,8 +9,7 @@ import (
 	"yeji-bot/bot/qbot"
 )
 
-func introHelp(ctx context.Context, api *openapi.Openapi, msg *qbot.WSGroupAtMessageData) (err error) {
-	logrus.Info("send help message")
+func IntroHelp(ctx context.Context, api *openapi.Openapi, msg *qbot.WSGroupAtMessageData) (err error) {
 	const preChar = "/"
 	sb := strings.Builder{}
 	sb.WriteString("【爆炒江湖查询机器人】\n")
