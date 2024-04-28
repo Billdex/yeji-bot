@@ -7,6 +7,7 @@ import (
 	"strings"
 	"yeji-bot/bot/openapi"
 	"yeji-bot/bot/qbot"
+	"yeji-bot/pkg/seq"
 )
 
 type GroupAtMessageHandlerFunc func(ctx context.Context, api *openapi.Openapi, msg *qbot.WSGroupAtMessageData) (err error)
@@ -102,6 +103,7 @@ func (s *GroupAtMessageHandlerScheduler) Handler() qbot.GroupAtMessageHandler {
 			ms = append(append(ms, s.globalMiddlewares...), cmdHandler.middlewares...)
 			chainHandler := chain(ms...)(cmdHandler.handler)
 			ctx := context.Background()
+			ctx = seq.SetSeq(ctx, 0)
 			err = chainHandler(ctx, api, msg)
 			if err != nil {
 				logrus.Infof("[GroupAtMessageHandlerScheduler.Handler] do chainHandler() fail. err: %v", err)

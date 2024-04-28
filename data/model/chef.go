@@ -27,6 +27,7 @@ type Chef struct {
 	SkillId       int      `gorm:"column:skill_id"`                       // 技能id
 	UltimateGoals []int    `gorm:"column:ultimate_goals;serializer:json"` // 修炼任务id数组
 	UltimateSkill int      `gorm:"column:ultimate_skill"`                 // 修炼效果id
+	Img           string   `gorm:"column:img"`                            // 图片地址
 
 	SkillDesc         string `gorm:"-"` // 技能描述
 	UltimateSkillDesc string `gorm:"-"` // 修炼技能描述
