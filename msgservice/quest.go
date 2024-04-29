@@ -9,7 +9,7 @@ import (
 	"yeji-bot/bot/openapi"
 	"yeji-bot/bot/qbot"
 	"yeji-bot/dao"
-	"yeji-bot/pkg/seq"
+	"yeji-bot/pkg/kit"
 )
 
 // QueryQuest 任务数据查询
@@ -20,7 +20,7 @@ func QueryQuest(ctx context.Context, api *openapi.Openapi, msg *qbot.WSGroupAtMe
 			Content: "任务查询格式有误",
 			MsgType: openapi.MsgTypeText,
 			MsgId:   msg.Id,
-			MsgSeq:  seq.Seq(ctx),
+			MsgSeq:  kit.Seq(ctx),
 		})
 		if err != nil {
 			logrus.WithContext(ctx).Errorf("post group message fail. err: %v", err)
@@ -35,7 +35,7 @@ func QueryQuest(ctx context.Context, api *openapi.Openapi, msg *qbot.WSGroupAtMe
 			Content: "任务查询格式有误",
 			MsgType: openapi.MsgTypeText,
 			MsgId:   msg.Id,
-			MsgSeq:  seq.Seq(ctx),
+			MsgSeq:  kit.Seq(ctx),
 		})
 		if err != nil {
 			logrus.WithContext(ctx).Errorf("post group message fail. err: %v", err)
@@ -57,7 +57,7 @@ func QueryQuest(ctx context.Context, api *openapi.Openapi, msg *qbot.WSGroupAtMe
 			Content: "获取任务数据失败",
 			MsgType: openapi.MsgTypeText,
 			MsgId:   msg.Id,
-			MsgSeq:  seq.Seq(ctx),
+			MsgSeq:  kit.Seq(ctx),
 		})
 		if err != nil {
 			logrus.WithContext(ctx).Errorf("post group message fail. err: %v", err)
@@ -69,7 +69,7 @@ func QueryQuest(ctx context.Context, api *openapi.Openapi, msg *qbot.WSGroupAtMe
 			Content: "任务不存在",
 			MsgType: openapi.MsgTypeText,
 			MsgId:   msg.Id,
-			MsgSeq:  seq.Seq(ctx),
+			MsgSeq:  kit.Seq(ctx),
 		})
 		if err != nil {
 			logrus.WithContext(ctx).Errorf("post group message fail. err: %v", err)
@@ -86,7 +86,7 @@ func QueryQuest(ctx context.Context, api *openapi.Openapi, msg *qbot.WSGroupAtMe
 		Content: contentMsg,
 		MsgType: openapi.MsgTypeText,
 		MsgId:   msg.Id,
-		MsgSeq:  seq.Seq(ctx),
+		MsgSeq:  kit.Seq(ctx),
 	})
 	if err != nil {
 		logrus.WithContext(ctx).Errorf("post group message fail. err: %v", err)

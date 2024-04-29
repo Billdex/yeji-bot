@@ -42,10 +42,18 @@ func introHelperStr() string {
 	return sb.String()
 }
 
+func chefHelperStr() string {
+	sb := strings.Builder{}
+	sb.WriteString("【厨师信息查询】\n")
+	sb.WriteString("提供游戏厨师数据查询\n")
+	sb.WriteString("示例「/厨师 羽十六」\n")
+	return sb.String()
+}
+
 func questHelperStr() string {
 	sb := strings.Builder{}
 	sb.WriteString("【任务信息查询】\n")
-	sb.WriteString("目前提供主线任务查询\n")
+	sb.WriteString("提供游戏主线任务查询\n")
 	sb.WriteString("示例「/任务 100」\n")
 	sb.WriteString("\n")
 	sb.WriteString("可一次查询最多五条数据\n")

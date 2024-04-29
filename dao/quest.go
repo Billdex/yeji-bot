@@ -11,7 +11,8 @@ import (
 )
 
 var (
-	questsMap      = make(map[string][]model.Quest)
+	questsMap      = make(map[int]model.Quest)
+	questTypesMap  = make(map[string][]model.Quest)
 	mainQuestsMap  = make(map[int]model.Quest) // 单独缓存主线任务，目前只提供主线查询
 	mainQuestsList = make([]model.Quest, 0)
 )
@@ -23,17 +24,20 @@ func ReloadQuests(ctx context.Context) ([]model.Quest, error) {
 		logrus.WithContext(ctx).Errorf("db.Find(quests) fail. err: %v", err)
 		return nil, errors.New("加载任务数据失败")
 	}
-	tmpQuestsMap := make(map[string][]model.Quest)
+	tmpQuestsMap := make(map[int]model.Quest)
+	tmpQuestTypesMap := make(map[string][]model.Quest)
 	tmpMainQuestsMap := make(map[int]model.Quest)
 	tmpMainQuestsList := make([]model.Quest, 0)
 	for i := range list {
-		tmpQuestsMap[list[i].Type] = append(tmpQuestsMap[list[i].Type], list[i])
+		tmpQuestsMap[list[i].QuestId] = list[i]
+		tmpQuestTypesMap[list[i].Type] = append(tmpQuestTypesMap[list[i].Type], list[i])
 		if list[i].Type == "主线任务" {
 			tmpMainQuestsMap[list[i].QuestId] = list[i]
 			tmpMainQuestsList = append(tmpMainQuestsList, list[i])
 		}
 	}
 	questsMap = tmpQuestsMap
+	questTypesMap = tmpQuestTypesMap
 	mainQuestsMap = tmpMainQuestsMap
 	sort.Slice(tmpMainQuestsList, func(i, j int) bool {
 		return tmpMainQuestsList[i].QuestId < tmpMainQuestsList[j].QuestId
@@ -51,8 +55,8 @@ func FindQuestTypeList(ctx context.Context, questType string) ([]string, error) 
 		logrus.WithContext(ctx).Errorf("任务类型查询正则格式有误. err: %v", err)
 		return nil, errors.New("任务类型格式有误")
 	}
-	questTypes := make([]string, 0, len(questsMap))
-	for key := range questsMap {
+	questTypes := make([]string, 0, len(questTypesMap))
+	for key := range questTypesMap {
 		if re.MatchString(key) {
 			questTypes = append(questTypes, key)
 		}
@@ -67,6 +71,24 @@ func GetMainQuestById(ctx context.Context, questId int) (model.Quest, error) {
 		return model.Quest{}, errors.New("任务不存在")
 	}
 	return quest, nil
+}
+
+func FindQuestsByIds(ctx context.Context, questIds []int) ([]model.Quest, error) {
+	if len(questsMap) == 0 {
+		_, err := ReloadQuests(ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
+	quests := make([]model.Quest, 0)
+	for _, questId := range questIds {
+		quest, ok := questsMap[questId]
+		if !ok {
+			return nil, errors.New("任务不存在")
+		}
+		quests = append(quests, quest)
+	}
+	return quests, nil
 }
 
 func ListMainQuestsWithLimit(ctx context.Context, questId int, limit int) ([]model.Quest, error) {

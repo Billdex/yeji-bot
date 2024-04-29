@@ -18,7 +18,7 @@ import (
 	"yeji-bot/dao"
 	"yeji-bot/data/gamedata"
 	"yeji-bot/data/model"
-	"yeji-bot/pkg/seq"
+	"yeji-bot/pkg/kit"
 )
 
 const (
@@ -41,7 +41,7 @@ func UpdateData(ctx context.Context, api *openapi.Openapi, msg *qbot.WSGroupAtMe
 			Content: "数据正在更新中",
 			MsgType: openapi.MsgTypeText,
 			MsgId:   msg.Id,
-			MsgSeq:  seq.Seq(ctx),
+			MsgSeq:  kit.Seq(ctx),
 		})
 		if err != nil {
 			logrus.WithContext(ctx).Errorf("post group message fail. err: %v", err)
@@ -70,7 +70,7 @@ func UpdateData(ctx context.Context, api *openapi.Openapi, msg *qbot.WSGroupAtMe
 		Content: "开始导入数据",
 		MsgType: openapi.MsgTypeText,
 		MsgId:   msg.Id,
-		MsgSeq:  seq.Seq(ctx),
+		MsgSeq:  kit.Seq(ctx),
 	})
 	updateStart := time.Now()
 	contentMsg := ""
@@ -83,7 +83,7 @@ func UpdateData(ctx context.Context, api *openapi.Openapi, msg *qbot.WSGroupAtMe
 			Content: "获取数据失败",
 			MsgType: openapi.MsgTypeText,
 			MsgId:   msg.Id,
-			MsgSeq:  seq.Seq(ctx),
+			MsgSeq:  kit.Seq(ctx),
 		})
 		if err != nil {
 			logrus.WithContext(ctx).Errorf("PostGroupMessage fail. err: %v", err)
@@ -103,7 +103,7 @@ func UpdateData(ctx context.Context, api *openapi.Openapi, msg *qbot.WSGroupAtMe
 			Content: "更新厨师数据失败",
 			MsgType: openapi.MsgTypeText,
 			MsgId:   msg.Id,
-			MsgSeq:  seq.Seq(ctx),
+			MsgSeq:  kit.Seq(ctx),
 		})
 		if err != nil {
 			logrus.WithContext(ctx).Errorf("PostGroupMessage fail. err: %v", err)
@@ -123,7 +123,7 @@ func UpdateData(ctx context.Context, api *openapi.Openapi, msg *qbot.WSGroupAtMe
 			Content: "更新菜谱数据失败",
 			MsgType: openapi.MsgTypeText,
 			MsgId:   msg.Id,
-			MsgSeq:  seq.Seq(ctx),
+			MsgSeq:  kit.Seq(ctx),
 		})
 		if err != nil {
 			logrus.WithContext(ctx).Errorf("PostGroupMessage fail. err: %v", err)
@@ -143,7 +143,7 @@ func UpdateData(ctx context.Context, api *openapi.Openapi, msg *qbot.WSGroupAtMe
 			Content: "更新厨具数据失败",
 			MsgType: openapi.MsgTypeText,
 			MsgId:   msg.Id,
-			MsgSeq:  seq.Seq(ctx),
+			MsgSeq:  kit.Seq(ctx),
 		})
 		if err != nil {
 			logrus.WithContext(ctx).Errorf("PostGroupMessage fail. err: %v", err)
@@ -163,7 +163,7 @@ func UpdateData(ctx context.Context, api *openapi.Openapi, msg *qbot.WSGroupAtMe
 			Content: "更新食材数据失败",
 			MsgType: openapi.MsgTypeText,
 			MsgId:   msg.Id,
-			MsgSeq:  seq.Seq(ctx),
+			MsgSeq:  kit.Seq(ctx),
 		})
 		if err != nil {
 			logrus.WithContext(ctx).Errorf("PostGroupMessage fail. err: %v", err)
@@ -183,7 +183,7 @@ func UpdateData(ctx context.Context, api *openapi.Openapi, msg *qbot.WSGroupAtMe
 			Content: "更新技能数据失败",
 			MsgType: openapi.MsgTypeText,
 			MsgId:   msg.Id,
-			MsgSeq:  seq.Seq(ctx),
+			MsgSeq:  kit.Seq(ctx),
 		})
 		if err != nil {
 			logrus.WithContext(ctx).Errorf("PostGroupMessage fail. err: %v", err)
@@ -203,7 +203,7 @@ func UpdateData(ctx context.Context, api *openapi.Openapi, msg *qbot.WSGroupAtMe
 			Content: "更新任务数据失败",
 			MsgType: openapi.MsgTypeText,
 			MsgId:   msg.Id,
-			MsgSeq:  seq.Seq(ctx),
+			MsgSeq:  kit.Seq(ctx),
 		})
 		if err != nil {
 			logrus.WithContext(ctx).Errorf("PostGroupMessage fail. err: %v", err)
@@ -220,7 +220,7 @@ func UpdateData(ctx context.Context, api *openapi.Openapi, msg *qbot.WSGroupAtMe
 		Content: contentMsg,
 		MsgType: openapi.MsgTypeText,
 		MsgId:   msg.Id,
-		MsgSeq:  seq.Seq(ctx),
+		MsgSeq:  kit.Seq(ctx),
 	})
 	if err != nil {
 		logrus.WithContext(ctx).Errorf("PostGroupMessage fail. err: %v", err)
