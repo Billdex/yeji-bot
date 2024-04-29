@@ -7,12 +7,12 @@ import (
 	"yeji-bot/bot/scheduler"
 )
 
-func Helper(fn func() string) scheduler.GroupAtMessageHandlerMiddleware {
+func Helper(helperStr string) scheduler.GroupAtMessageHandlerMiddleware {
 	return func(handler scheduler.GroupAtMessageHandlerFunc) scheduler.GroupAtMessageHandlerFunc {
 		return func(ctx context.Context, api *openapi.Openapi, msg *qbot.WSGroupAtMessageData) (err error) {
 			if msg.Content == "" {
 				_, err = api.PostGroupMessage(ctx, msg.GroupOpenid, &openapi.PostGroupMessageReq{
-					Content: fn(),
+					Content: helperStr,
 					MsgType: openapi.MsgTypeText,
 					MsgId:   msg.Id,
 					MsgSeq:  msg.Seq,

@@ -72,4 +72,6 @@ type WSGroupAtMessageData struct {
 	GroupId     string    `json:"group_id"`
 	GroupOpenid string    `json:"group_openid"`
 	Timestamp   time.Time `json:"timestamp"`
+
+	CmdName string `json:"-"` // 指令名称
 }

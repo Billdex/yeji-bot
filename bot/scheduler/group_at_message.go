@@ -99,6 +99,9 @@ func (s *GroupAtMessageHandlerScheduler) Handler() qbot.GroupAtMessageHandler {
 			}()
 			msg.Content = strings.TrimSpace(msg.Content)
 			cmdHandler := s.match(msg.Content)
+			msg.CmdName = cmdHandler.cmd
+			msg.Content = strings.TrimPrefix(msg.Content, cmdHandler.cmd)
+			msg.Content = strings.TrimSpace(msg.Content)
 			ms := make([]GroupAtMessageHandlerMiddleware, 0, len(s.globalMiddlewares)+len(cmdHandler.middlewares))
 			ms = append(append(ms, s.globalMiddlewares...), cmdHandler.middlewares...)
 			chainHandler := chain(ms...)(cmdHandler.handler)

@@ -10,4 +10,5 @@ func Register(s *scheduler.GroupAtMessageHandlerScheduler) {
 	s.Register("/更新", UpdateData).Middlewares(middleware.MustAdmin())
 
 	s.Register("/厨师", QueryChef)
+	s.Register("/任务", QueryQuest).Middlewares(middleware.Helper(questHelperStr()))
 }

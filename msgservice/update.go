@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/pkg/errors"
+	"github.com/shopspring/decimal"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"io/ioutil"
@@ -115,7 +116,7 @@ func UpdateData(ctx context.Context, api *openapi.Openapi, msg *qbot.WSGroupAtMe
 
 	// 更新菜谱数据
 	stepStart = time.Now()
-	err = updateRecipes(ctx, gameData.Recipes, gameData.Combos, gameData.Guests)
+	err = updateRecipes(ctx, gameData.Recipes, gameData.Materials, gameData.Combos, gameData.Guests)
 	if err != nil {
 		logrus.WithContext(ctx).Errorf("更新菜谱数据失败. err: %v", err)
 		_, err = api.PostGroupMessage(ctx, msg.GroupOpenid, &openapi.PostGroupMessageReq{
@@ -152,6 +153,66 @@ func UpdateData(ctx context.Context, api *openapi.Openapi, msg *qbot.WSGroupAtMe
 	stepTime = time.Since(stepStart).Round(time.Millisecond).String()
 	logrus.WithContext(ctx).Infof("更新厨具数据完毕，耗时: %s", stepTime)
 	contentMsg += fmt.Sprintf("更新厨具数据耗时: %s\n", stepTime)
+
+	// 更新食材数据
+	stepStart = time.Now()
+	err = updateMaterials(ctx, gameData.Materials)
+	if err != nil {
+		logrus.WithContext(ctx).Errorf("更新食材数据失败. err: %v", err)
+		_, err = api.PostGroupMessage(ctx, msg.GroupOpenid, &openapi.PostGroupMessageReq{
+			Content: "更新食材数据失败",
+			MsgType: openapi.MsgTypeText,
+			MsgId:   msg.Id,
+			MsgSeq:  seq.Seq(ctx),
+		})
+		if err != nil {
+			logrus.WithContext(ctx).Errorf("PostGroupMessage fail. err: %v", err)
+		}
+		return nil
+	}
+	stepTime = time.Since(stepStart).Round(time.Millisecond).String()
+	logrus.WithContext(ctx).Infof("更新食材数据完毕，耗时: %s", stepTime)
+	contentMsg += fmt.Sprintf("更新食材数据耗时: %s\n", stepTime)
+
+	// 更新技能信息
+	stepStart = time.Now()
+	err = updateSkills(ctx, gameData.Skills)
+	if err != nil {
+		logrus.WithContext(ctx).Errorf("更新技能数据失败. err: %v", err)
+		_, err = api.PostGroupMessage(ctx, msg.GroupOpenid, &openapi.PostGroupMessageReq{
+			Content: "更新技能数据失败",
+			MsgType: openapi.MsgTypeText,
+			MsgId:   msg.Id,
+			MsgSeq:  seq.Seq(ctx),
+		})
+		if err != nil {
+			logrus.WithContext(ctx).Errorf("PostGroupMessage fail. err: %v", err)
+		}
+		return nil
+	}
+	stepTime = time.Since(stepStart).Round(time.Millisecond).String()
+	logrus.WithContext(ctx).Infof("更新技能数据完毕，耗时: %s", stepTime)
+	contentMsg += fmt.Sprintf("更新技能数据耗时: %s\n", stepTime)
+
+	// 更新任务数据
+	stepStart = time.Now()
+	err = updateQuests(ctx, gameData.Quests)
+	if err != nil {
+		logrus.WithContext(ctx).Errorf("更新任务数据失败. err: %v", err)
+		_, err = api.PostGroupMessage(ctx, msg.GroupOpenid, &openapi.PostGroupMessageReq{
+			Content: "更新任务数据失败",
+			MsgType: openapi.MsgTypeText,
+			MsgId:   msg.Id,
+			MsgSeq:  seq.Seq(ctx),
+		})
+		if err != nil {
+			logrus.WithContext(ctx).Errorf("PostGroupMessage fail. err: %v", err)
+		}
+		return nil
+	}
+	stepTime = time.Since(stepStart).Round(time.Millisecond).String()
+	logrus.WithContext(ctx).Infof("更新任务数据完毕，耗时: %s", stepTime)
+	contentMsg += fmt.Sprintf("更新任务数据耗时: %s\n", stepTime)
 
 	logrus.WithContext(ctx).Infof("更新数据完毕，耗时: %s", time.Since(updateStart).Round(time.Millisecond).String())
 	contentMsg = strings.TrimSuffix(fmt.Sprintf("更新数据完毕，累计耗时: %s\n%s", time.Since(updateStart).Round(time.Millisecond).String(), contentMsg), "\n")
@@ -241,11 +302,15 @@ func updateChefs(ctx context.Context, chefsData []gamedata.ChefData) error {
 }
 
 // 更新菜谱信息
-func updateRecipes(ctx context.Context, recipesData []gamedata.RecipeData, combosData []gamedata.ComboData, guestsData []gamedata.GuestData) error {
+func updateRecipes(ctx context.Context, recipesData []gamedata.RecipeData, materialsData []gamedata.MaterialData, combosData []gamedata.ComboData, guestsData []gamedata.GuestData) error {
 	if len(recipesData) == 0 {
 		return errors.New("菜谱数据为空")
 	}
 
+	mMaterials := make(map[int]gamedata.MaterialData)
+	for i := range materialsData {
+		mMaterials[materialsData[i].MaterialId] = materialsData[i]
+	}
 	mIdToNameCombo := make(map[int]struct {
 		Name   string
 		Combos []string
@@ -287,8 +352,9 @@ func updateRecipes(ctx context.Context, recipesData []gamedata.RecipeData, combo
 		materialSum := 0
 		for _, materialData := range recipeData.Materials {
 			materials = append(materials, model.RecipeMaterial{
-				MaterialId: materialData.MaterialId,
-				Quantity:   materialData.Quantity,
+				MaterialId:   materialData.MaterialId,
+				MaterialName: mMaterials[materialData.MaterialId].Name,
+				Quantity:     materialData.Quantity,
 			})
 			materialSum += materialData.Quantity
 		}
@@ -338,8 +404,41 @@ func updateRecipes(ctx context.Context, recipesData []gamedata.RecipeData, combo
 	return err
 }
 
+// updateMaterials 更新食材数据
+func updateMaterials(ctx context.Context, materialsData []gamedata.MaterialData) error {
+	if len(materialsData) == 0 {
+		return errors.New("食材数据为空")
+	}
+	materials := make([]model.Material, 0, len(materialsData))
+	for _, materialData := range materialsData {
+		materials = append(materials, model.Material{
+			MaterialId: materialData.MaterialId,
+			Name:       materialData.Name,
+			Origin:     materialData.Origin,
+		})
+	}
+	err := dao.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) (err error) {
+		err = tx.Exec(`truncate table material`).Error
+		if err != nil {
+			logrus.WithContext(ctx).Errorf("try truncate table material fail. err: %v", err)
+			return err
+		}
+		err = tx.Create(&materials).Error
+		if err != nil {
+			logrus.WithContext(ctx).Errorf("try insert all materials data fail. err: %v", err)
+			return err
+		}
+		return nil
+	})
+
+	return err
+}
+
 // 更新厨具信息
 func updateEquips(ctx context.Context, equipsData []gamedata.EquipData) error {
+	if len(equipsData) == 0 {
+		return errors.New("厨具数据为空")
+	}
 	equips := make([]model.Equip, 0, len(equipsData))
 	for _, equipData := range equipsData {
 		equips = append(equips, model.Equip{
@@ -364,5 +463,109 @@ func updateEquips(ctx context.Context, equipsData []gamedata.EquipData) error {
 		}
 		return nil
 	})
+	return err
+}
+
+// updateSkills 更新技能数据
+func updateSkills(ctx context.Context, skillsData []gamedata.SkillData) error {
+	if len(skillsData) == 0 {
+		return errors.New("技能数据为空")
+	}
+	skills := make([]model.Skill, 0, len(skillsData))
+	for _, skillData := range skillsData {
+		skill := model.Skill{
+			SkillId:     skillData.SkillId,
+			Description: strings.ReplaceAll(skillData.Description, "<br>", ","),
+		}
+		effects := make([]model.SkillEffect, 0, len(skillData.Effects))
+		for _, effectData := range skillData.Effects {
+			effects = append(effects, model.SkillEffect{
+				Calculation: effectData.Calculation,
+				Type:        effectData.Type,
+				Condition:   effectData.Condition,
+				Tag:         effectData.Tag,
+				Value:       effectData.Value,
+			})
+		}
+		skill.Effects = effects
+		skills = append(skills, skill)
+	}
+
+	err := dao.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) (err error) {
+		err = tx.Exec(`truncate table skill`).Error
+		if err != nil {
+			logrus.WithContext(ctx).Errorf("try truncate table skill fail. err: %v", err)
+			return err
+		}
+		err = tx.Create(&skills).Error
+		if err != nil {
+			logrus.WithContext(ctx).Errorf("try insert all skills data fail. err: %v", err)
+			return err
+		}
+		return nil
+	})
+
+	return err
+}
+
+// 更新任务信息
+func updateQuests(ctx context.Context, questsData []gamedata.QuestData) error {
+	if len(questsData) == 0 {
+		return errors.New("任务数据为空")
+	}
+	quests := make([]model.Quest, 0, len(questsData))
+	for _, questData := range questsData {
+		rewards := make([]model.QuestReward, 0, len(questData.Rewards))
+		for _, rewardData := range questData.Rewards {
+			rewards = append(rewards, model.QuestReward{
+				Name:     rewardData.Name,
+				Quantity: rewardData.Quantity,
+			})
+		}
+		conditions := make([]model.QuestCondition, 0)
+		for _, conditionData := range questData.Conditions {
+			conditions = append(conditions, model.QuestCondition{
+				RecipeId:     conditionData.RecipeId,
+				Rank:         conditionData.Rank,
+				Num:          conditionData.Num,
+				GoldEff:      conditionData.GoldEff,
+				MaterialId:   conditionData.MaterialId,
+				Guest:        conditionData.Guest,
+				AnyGuest:     conditionData.AnyGuest,
+				Skill:        conditionData.Skill,
+				MaterialEff:  conditionData.MaterialEff,
+				NewGuest:     conditionData.NewGuest,
+				Rarity:       conditionData.Rarity,
+				Price:        conditionData.Price,
+				Category:     conditionData.Category,
+				Condiment:    conditionData.Condiment,
+				CondimentEff: conditionData.CondimentEff,
+			})
+		}
+		quest := model.Quest{
+			QuestId:     questData.QuestId,
+			QuestIdDisp: decimal.NewFromFloatWithExponent(questData.QuestIdDisp, 2),
+			Type:        questData.Type,
+			Goal:        questData.Goal,
+			Rewards:     rewards,
+			Conditions:  conditions,
+		}
+		quests = append(quests, quest)
+	}
+
+	err := dao.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) (err error) {
+		err = tx.Exec(`truncate table quest`).Error
+		if err != nil {
+			logrus.WithContext(ctx).Errorf("try truncate table quest fail. err: %v", err)
+			return err
+		}
+		err = tx.Create(&quests).Error
+		if err != nil {
+			logrus.WithContext(ctx).Errorf("try insert all quest data fail. err: %v", err)
+			return err
+		}
+		return nil
+	})
+
 	return err
 }
