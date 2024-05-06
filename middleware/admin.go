@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"context"
-	"github.com/sirupsen/logrus"
 	"yeji-bot/bot/openapi"
 	"yeji-bot/bot/qbot"
 	"yeji-bot/bot/scheduler"
@@ -20,15 +19,6 @@ func MustAdmin() scheduler.GroupAtMessageHandlerMiddleware {
 				}
 			}
 			if !isAdmin {
-				_, err = api.PostGroupMessage(ctx, msg.GroupOpenid, &openapi.PostGroupMessageReq{
-					Content: "我不听我不听",
-					MsgType: openapi.MsgTypeText,
-					MsgId:   msg.Id,
-					MsgSeq:  msg.Seq,
-				})
-				if err != nil {
-					logrus.WithContext(ctx).Errorf("send message fail. err: %v", err)
-				}
 				return nil
 			}
 			return handler(ctx, api, msg)

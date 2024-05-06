@@ -91,7 +91,7 @@ func (s *GroupAtMessageHandlerScheduler) Handler() qbot.GroupAtMessageHandler {
 	return func(api *openapi.Openapi, event *qbot.WSPayload, msg *qbot.WSGroupAtMessageData) (err error) {
 		go func() {
 			defer func() {
-				if e := recover(); err != nil {
+				if e := recover(); e != nil {
 					buf := make([]byte, 4096)
 					buf = buf[:runtime.Stack(buf, false)]
 					logrus.Errorf("[GroupAtMessageHandlerScheduler.Handler] panic. err: %v, event: %+v, msg: %+v, stack: %s", e, *event, *msg, string(buf))

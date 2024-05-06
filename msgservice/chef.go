@@ -235,7 +235,7 @@ func genChefMessage(ctx context.Context, chef model.Chef) openapi.PostGroupMessa
 		return openapi.PostGroupMessageReq{
 			Content: msg,
 			MsgType: openapi.MsgTypeMedia,
-			Media:   openapi.Media{FileInfo: ""},
+			Media:   &openapi.Media{FileInfo: ""},
 			MsgSeq:  kit.Seq(ctx),
 		}
 	}

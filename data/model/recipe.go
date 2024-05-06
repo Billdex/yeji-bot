@@ -45,6 +45,7 @@ type RecipeGuestGift struct {
 // RecipeMaterial 菜谱食材数据
 type RecipeMaterial struct {
 	RecipeId     int    `json:"-"`      // 菜谱 id
+	RecipeName   string `json:"-"`      // 菜谱名称
 	MaterialId   int    `json:"m_id"`   // 食材 id
 	MaterialName string `json:"m_name"` // 食材名称
 	Quantity     int    `json:"qty"`    // 消耗数量

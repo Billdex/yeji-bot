@@ -12,7 +12,6 @@ func IntroHelp(ctx context.Context, api *openapi.Openapi, msg *qbot.WSGroupAtMes
 	_, err = api.PostGroupMessage(ctx, msg.GroupOpenid, &openapi.PostGroupMessageReq{
 		Content: introHelperStr(),
 		MsgType: openapi.MsgTypeText,
-		Media:   openapi.Media{},
 		MsgId:   msg.Id,
 		MsgSeq:  msg.Seq,
 	})
@@ -25,7 +24,7 @@ func IntroHelp(ctx context.Context, api *openapi.Openapi, msg *qbot.WSGroupAtMes
 func introHelperStr() string {
 	sb := strings.Builder{}
 	sb.WriteString("【爆炒江湖叶姬小助手】\n")
-	sb.WriteString("使用方式『/功能名 参数』\n")
+	sb.WriteString("使用方式『/功能名 查询参数』\n")
 	sb.WriteString("示例「/厨师 羽十六」\n")
 	sb.WriteString("目前提供以下数据查询功能: \n")
 	sb.WriteString("厨师  菜谱  厨具\n")
@@ -50,13 +49,37 @@ func chefHelperStr() string {
 	return sb.String()
 }
 
+func materialHelperStr() string {
+	sb := strings.Builder{}
+	sb.WriteString("【食材消耗效率查询】\n")
+	sb.WriteString("根据食材名称查询对应菜谱列表，并按照对应食材的每小时消耗效率升序排序。\n")
+	sb.WriteString("结果过多可使用「p」参数分页\n")
+	sb.WriteString("示例:「/食材 梅花肉」 「/食材 豆腐 p2」")
+	return sb.String()
+}
+
+func guestHelperStr() string {
+	sb := strings.Builder{}
+	sb.WriteString("【贵客信息查询】\n")
+	sb.WriteString("根据贵客名查询对应菜谱列表，并按照一组的时间升序排序。\n")
+	sb.WriteString("结果过多可使用「p」参数分页\n")
+	sb.WriteString("示例:「/贵客 木良」 「/贵客 木优 p2」")
+	return sb.String()
+}
+
+func antiqueHelperStr() string {
+	sb := strings.Builder{}
+	sb.WriteString("【符文信息查询】\n")
+	sb.WriteString("提供根据符文名查询对应菜谱的功能, 并按照一组的时间升序排序。\n")
+	sb.WriteString("结果过多可使用「p」参数分页\n")
+	sb.WriteString("示例:「/符文 五香果」 「/符文 一昧真火 p2」")
+	return sb.String()
+}
+
 func questHelperStr() string {
 	sb := strings.Builder{}
 	sb.WriteString("【任务信息查询】\n")
-	sb.WriteString("提供游戏主线任务查询\n")
-	sb.WriteString("示例「/任务 100」\n")
-	sb.WriteString("\n")
-	sb.WriteString("可一次查询最多五条数据\n")
-	sb.WriteString("示例「/任务 100 5」")
+	sb.WriteString("提供游戏主线任务查询, 可一次查询最多五条数据。\n")
+	sb.WriteString("示例「/任务 100」 「/任务 100 5」")
 	return sb.String()
 }

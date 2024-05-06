@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	skillsMap = make(map[int]model.Skill)
+	cacheSkillsMap = make(map[int]model.Skill)
 )
 
 func ReloadSkills(ctx context.Context) ([]model.Skill, error) {
@@ -22,12 +22,12 @@ func ReloadSkills(ctx context.Context) ([]model.Skill, error) {
 	for _, skill := range list {
 		tmpSkillsMap[skill.SkillId] = skill
 	}
-	skillsMap = tmpSkillsMap
+	cacheSkillsMap = tmpSkillsMap
 	return list, nil
 }
 
 func GetSkillsMapByIds(ctx context.Context, skillIds []int) (map[int]model.Skill, error) {
-	if len(skillsMap) == 0 {
+	if len(cacheSkillsMap) == 0 {
 		_, err := ReloadSkills(ctx)
 		if err != nil {
 			return nil, err
@@ -35,7 +35,7 @@ func GetSkillsMapByIds(ctx context.Context, skillIds []int) (map[int]model.Skill
 	}
 	m := make(map[int]model.Skill)
 	for _, skillId := range skillIds {
-		skill, ok := skillsMap[skillId]
+		skill, ok := cacheSkillsMap[skillId]
 		if !ok {
 			return nil, errors.New("技能不存在")
 		}
@@ -45,13 +45,13 @@ func GetSkillsMapByIds(ctx context.Context, skillIds []int) (map[int]model.Skill
 }
 
 func GetSkillById(ctx context.Context, skillId int) (model.Skill, error) {
-	if len(skillsMap) == 0 {
+	if len(cacheSkillsMap) == 0 {
 		_, err := ReloadSkills(ctx)
 		if err != nil {
 			return model.Skill{}, err
 		}
 	}
-	skill, ok := skillsMap[skillId]
+	skill, ok := cacheSkillsMap[skillId]
 	if !ok {
 		return model.Skill{}, errors.New("技能不存在")
 	}

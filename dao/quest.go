@@ -11,10 +11,10 @@ import (
 )
 
 var (
-	questsMap      = make(map[int]model.Quest)
-	questTypesMap  = make(map[string][]model.Quest)
-	mainQuestsMap  = make(map[int]model.Quest) // 单独缓存主线任务，目前只提供主线查询
-	mainQuestsList = make([]model.Quest, 0)
+	cacheQuestsMap      = make(map[int]model.Quest)
+	cacheQuestTypesMap  = make(map[string][]model.Quest)
+	cacheMainQuestsMap  = make(map[int]model.Quest) // 单独缓存主线任务，目前只提供主线查询
+	cacheMainQuestsList = make([]model.Quest, 0)
 )
 
 func ReloadQuests(ctx context.Context) ([]model.Quest, error) {
@@ -36,13 +36,13 @@ func ReloadQuests(ctx context.Context) ([]model.Quest, error) {
 			tmpMainQuestsList = append(tmpMainQuestsList, list[i])
 		}
 	}
-	questsMap = tmpQuestsMap
-	questTypesMap = tmpQuestTypesMap
-	mainQuestsMap = tmpMainQuestsMap
+	cacheQuestsMap = tmpQuestsMap
+	cacheQuestTypesMap = tmpQuestTypesMap
+	cacheMainQuestsMap = tmpMainQuestsMap
 	sort.Slice(tmpMainQuestsList, func(i, j int) bool {
 		return tmpMainQuestsList[i].QuestId < tmpMainQuestsList[j].QuestId
 	})
-	mainQuestsList = tmpMainQuestsList
+	cacheMainQuestsList = tmpMainQuestsList
 
 	return list, nil
 }
@@ -55,8 +55,8 @@ func FindQuestTypeList(ctx context.Context, questType string) ([]string, error) 
 		logrus.WithContext(ctx).Errorf("任务类型查询正则格式有误. err: %v", err)
 		return nil, errors.New("任务类型格式有误")
 	}
-	questTypes := make([]string, 0, len(questTypesMap))
-	for key := range questTypesMap {
+	questTypes := make([]string, 0, len(cacheQuestTypesMap))
+	for key := range cacheQuestTypesMap {
 		if re.MatchString(key) {
 			questTypes = append(questTypes, key)
 		}
@@ -66,7 +66,7 @@ func FindQuestTypeList(ctx context.Context, questType string) ([]string, error) 
 
 // GetMainQuestById 根据 id 查询主线任务
 func GetMainQuestById(ctx context.Context, questId int) (model.Quest, error) {
-	quest, ok := mainQuestsMap[questId]
+	quest, ok := cacheMainQuestsMap[questId]
 	if !ok {
 		return model.Quest{}, errors.New("任务不存在")
 	}
@@ -74,7 +74,7 @@ func GetMainQuestById(ctx context.Context, questId int) (model.Quest, error) {
 }
 
 func FindQuestsByIds(ctx context.Context, questIds []int) ([]model.Quest, error) {
-	if len(questsMap) == 0 {
+	if len(cacheQuestsMap) == 0 {
 		_, err := ReloadQuests(ctx)
 		if err != nil {
 			return nil, err
@@ -82,7 +82,7 @@ func FindQuestsByIds(ctx context.Context, questIds []int) ([]model.Quest, error)
 	}
 	quests := make([]model.Quest, 0)
 	for _, questId := range questIds {
-		quest, ok := questsMap[questId]
+		quest, ok := cacheQuestsMap[questId]
 		if !ok {
 			return nil, errors.New("任务不存在")
 		}
@@ -98,16 +98,16 @@ func ListMainQuestsWithLimit(ctx context.Context, questId int, limit int) ([]mod
 	if limit > 5 {
 		limit = 5
 	}
-	if len(mainQuestsList) == 0 {
+	if len(cacheMainQuestsList) == 0 {
 		_, err := ReloadQuests(ctx)
 		if err != nil {
 			return nil, err
 		}
 	}
 	result := make([]model.Quest, 0, limit)
-	for i := range mainQuestsList {
-		if mainQuestsList[i].QuestId >= questId {
-			result = append(result, mainQuestsList[i])
+	for i := range cacheMainQuestsList {
+		if cacheMainQuestsList[i].QuestId >= questId {
+			result = append(result, cacheMainQuestsList[i])
 		}
 		if len(result) >= limit {
 			break
