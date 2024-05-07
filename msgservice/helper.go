@@ -45,7 +45,23 @@ func chefHelperStr() string {
 	sb := strings.Builder{}
 	sb.WriteString("【厨师信息查询】\n")
 	sb.WriteString("提供游戏厨师数据查询\n")
-	sb.WriteString("示例「/厨师 羽十六」\n")
+	sb.WriteString("示例:「/厨师 099」 「/厨师 羽十六」")
+	return sb.String()
+}
+
+func recipeHelperStr() string {
+	sb := strings.Builder{}
+	sb.WriteString("【菜谱信息查询】\n")
+	sb.WriteString("提供游戏菜谱数据查询\n")
+	sb.WriteString("示例:「/菜谱 100」 「/菜谱 糖番茄」")
+	return sb.String()
+}
+
+func equipHelperStr() string {
+	sb := strings.Builder{}
+	sb.WriteString("【厨具信息查询】\n")
+	sb.WriteString("提供游戏厨具数据查询\n")
+	sb.WriteString("示例:「/厨具 003」 「/厨具 金烤叉」")
 	return sb.String()
 }
 

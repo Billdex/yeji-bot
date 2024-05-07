@@ -46,7 +46,6 @@ func ReloadRecipes(ctx context.Context) ([]model.Recipe, error) {
 		})
 		recipeMaterialsMap[materialName] = recipeMaterials
 	}
-	logrus.WithContext(ctx).Infof("load recipeMaterialsMap: %+v", recipeMaterialsMap)
 	cacheRecipeMaterialsMap = recipeMaterialsMap
 	cacheRecipeList = recipes
 	return recipes, nil

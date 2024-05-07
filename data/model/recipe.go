@@ -25,8 +25,8 @@ type Recipe struct {
 	TotalTime          int               `gorm:"column:total_time"`                     // 每组时间(秒)
 	Unlock             string            `gorm:"column:unlock"`                         // 可解锁
 	Combos             []string          `gorm:"column:combos;serializer:json"`         // 可合成菜谱
+	Img                string            `gorm:"column:img"`                            // 图片
 	Materials          []RecipeMaterial  `gorm:"column:materials;serializer:json"`      // 所需食材数据
-
 }
 
 func (Recipe) TableName() string {
