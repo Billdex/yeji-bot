@@ -20,7 +20,7 @@ func ReloadEquips(ctx context.Context) error {
 		return errors.New("加载厨具数据失败")
 	}
 
-	skillMap, err := GetSkillsMapByIds(ctx, []int{0})
+	skillMap, err := GetSkillsMapByIds(ctx, nil)
 	if err != nil {
 		return err
 	}
