@@ -58,6 +58,10 @@ func QueryEquip(ctx context.Context, api *openapi.Openapi, msg *qbot.WSGroupAtMe
 			order = arg
 		case model.IsRarityStr(arg):
 			equips = filterEquipsByRarity(ctx, equips, model.RarityToInt(arg))
+		case kit.HasPrefixIn(arg, []string{"技能", "效果", "功能"}):
+			equips, err = filterEquipsBySkills(ctx, equips, strings.Split(kit.TrimPrefixIn(arg, []string{"技能", "效果", "功能"}), "-"))
+		case strings.HasPrefix(strings.ToLower(arg), "p"):
+			page = kit.ParsePage(arg, 1)
 		default:
 			equips, err = filterEquipsByIdOrName(ctx, equips, arg)
 		}
@@ -128,6 +132,45 @@ func filterEquipsByRarity(ctx context.Context, equips []model.Equip, rarity int)
 	})
 }
 
+// filterEquipsBySkill 根据技能筛选厨具
+func filterEquipsBySkill(ctx context.Context, equips []model.Equip, skill string) ([]model.Equip, error) {
+	if s := kit.WhichPrefixIn(skill, []string{"贵客", "贵宾", "客人", "宾客", "稀客"}); s != "" {
+		skill = "稀有客人" + strings.ReplaceAll(skill, s, "")
+	}
+
+	pattern := strings.ReplaceAll(skill, "%", ".*")
+	re, err := regexp.Compile(pattern)
+	if err != nil {
+		logrus.WithContext(ctx).Errorf("查询正则格式有误. raw: %s, err: %v", pattern, err)
+		return nil, errors.New("技能筛选格式有误")
+	}
+	return kit.SliceFilter(equips, func(equip model.Equip) bool {
+		for i := range equip.SkillDescs {
+			if re.MatchString(equip.SkillDescs[i]) {
+				return true
+			}
+		}
+		return false
+	}), nil
+}
+
+// filterEquipsBySkills 根据技能列表筛选厨具
+func filterEquipsBySkills(ctx context.Context, equips []model.Equip, skills []string) ([]model.Equip, error) {
+	if len(equips) == 0 || len(skills) == 0 {
+		return equips, nil
+	}
+	result := make([]model.Equip, len(equips))
+	copy(result, equips)
+	var err error
+	for _, skill := range skills {
+		result, err = filterEquipsBySkill(ctx, result, skill)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return result, nil
+}
+
 // sortEquips 根据排序参数排序厨具
 func sortEquips(ctx context.Context, equips []model.Equip, order string) []model.Equip {
 	if len(equips) == 0 {
@@ -168,29 +211,11 @@ func generateEquipMessage(ctx context.Context, equip model.Equip) openapi.PostGr
 	}
 	logrus.WithContext(ctx).Infof("未找到厨具 %d %s 图鉴图片, 以文字格式发送数据", equip.EquipId, equip.Name)
 
-	mSkills, err := dao.GetSkillsMapByIds(ctx, equip.Skills)
-	if err != nil {
-		logrus.WithContext(ctx).Error("查询技能数据出错!", err)
-		return openapi.PostGroupMessageReq{
-			Content: "哎呀，系统开小差了",
-			MsgType: openapi.MsgTypeText,
-		}
-	}
-	skills := make([]model.Skill, 0, len(equip.Skills))
-	for _, skill := range equip.Skills {
-		skills = append(skills, mSkills[skill])
-	}
-	sort.Slice(skills, func(i, j int) bool {
-		return skills[i].SkillId < skills[j].SkillId
-	})
-	skillDescs := kit.SliceMap(skills, func(skill model.Skill) string {
-		return fmt.Sprintf("%s", skill.Description)
-	})
 	var msg string
 	msg += fmt.Sprintf("%s %s\n", equip.GalleryId, equip.Name)
 	msg += fmt.Sprintf("%s\n", strings.Repeat("🔥", equip.Rarity))
 	msg += fmt.Sprintf("来源: %s\n", strings.Join(equip.Origins, ","))
-	msg += fmt.Sprintf("效果: %s", strings.Join(skillDescs, ","))
+	msg += fmt.Sprintf("效果: %s", strings.Join(equip.SkillDescs, ","))
 	return openapi.PostGroupMessageReq{
 		Content: msg,
 		MsgType: openapi.MsgTypeText,

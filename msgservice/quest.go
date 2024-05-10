@@ -14,7 +14,7 @@ import (
 
 // QueryQuest 任务数据查询
 func QueryQuest(ctx context.Context, api *openapi.Openapi, msg *qbot.WSGroupAtMessageData) (err error) {
-	args := strings.Split(msg.Content, " ")
+	args := kit.SliceFilter(strings.Split(msg.Content, " "), func(s string) bool { return s != "" })
 	if len(args) == 0 {
 		_, err = api.PostGroupMessage(ctx, msg.GroupOpenid, &openapi.PostGroupMessageReq{
 			Content: "任务查询格式有误",

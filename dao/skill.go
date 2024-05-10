@@ -33,7 +33,14 @@ func GetSkillsMapByIds(ctx context.Context, skillIds []int) (map[int]model.Skill
 			return nil, err
 		}
 	}
-	m := make(map[int]model.Skill)
+	if len(skillIds) == 0 {
+		m := make(map[int]model.Skill, len(skillIds))
+		for id := range cacheSkillsMap {
+			m[id] = cacheSkillsMap[id]
+		}
+		return m, nil
+	}
+	m := make(map[int]model.Skill, len(skillIds))
 	for _, skillId := range skillIds {
 		skill, ok := cacheSkillsMap[skillId]
 		if !ok {

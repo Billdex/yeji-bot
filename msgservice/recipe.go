@@ -60,7 +60,7 @@ func QueryRecipe(ctx context.Context, api *openapi.Openapi, msg *qbot.WSGroupAtM
 		case model.IsRarityStr(arg):
 			recipes = filterRecipesByRarity(ctx, recipes, model.RarityToInt(arg), strings.HasPrefix(arg, "仅"))
 		case strings.HasSuffix(arg, "技法"):
-			recipes = filterRecipesBySkill(ctx, recipes, arg)
+			recipes = filterRecipesBySkill(ctx, recipes, strings.TrimSuffix(arg, "技法"))
 		case strings.HasPrefix(arg, "技法"):
 			recipes = filterRecipesBySkills(ctx, recipes, strings.Split(strings.TrimPrefix(arg, "技法"), "-"))
 		case kit.SliceContains([]string{"甜味", "酸味", "辣味", "咸味", "苦味", "鲜味"}, arg):

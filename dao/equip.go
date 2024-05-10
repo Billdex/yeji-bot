@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/sirupsen/logrus"
 	"yeji-bot/data/model"
+	"yeji-bot/pkg/kit"
 )
 
 var (
@@ -12,12 +13,23 @@ var (
 )
 
 func ReloadEquips(ctx context.Context) error {
-	tmpEquips := make([]model.Equip, 0)
+	tmpEquips := make([]model.Equip, len(cacheEquipList))
 	err := DB.WithContext(ctx).Find(&tmpEquips).Error
 	if err != nil {
 		logrus.WithContext(ctx).Errorf("db.Find(equips) fail. err: %v", err)
 		return errors.New("加载厨具数据失败")
 	}
+
+	skillMap, err := GetSkillsMapByIds(ctx, []int{0})
+	if err != nil {
+		return err
+	}
+	for i := range tmpEquips {
+		tmpEquips[i].SkillDescs = kit.SliceMap(tmpEquips[i].Skills, func(skillId int) string {
+			return skillMap[skillId].Description
+		})
+	}
+
 	cacheEquipList = tmpEquips
 	return nil
 }
