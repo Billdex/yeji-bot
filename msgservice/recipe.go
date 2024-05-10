@@ -18,7 +18,7 @@ import (
 
 func QueryRecipe(ctx context.Context, api *openapi.Openapi, msg *qbot.WSGroupAtMessageData) error {
 	var (
-		order = "稀有度"
+		order = "单时间"
 		page  = 1
 	)
 
