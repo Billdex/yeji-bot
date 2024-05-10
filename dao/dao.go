@@ -1,6 +1,7 @@
 package dao
 
 import (
+	"context"
 	"github.com/pkg/errors"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -46,5 +47,22 @@ func initDatabase(dsn string) (err error) {
 	db.SetMaxOpenConns(16)
 	db.SetConnMaxLifetime(8 * time.Hour)
 
+	return nil
+}
+
+func ReloadAllCache(ctx context.Context) error {
+	for _, fn := range []func(context.Context) error{
+		ReloadChefs,
+		ReloadRecipes,
+		ReloadEquips,
+		ReloadGifts,
+		ReloadSkills,
+		ReloadQuests,
+	} {
+		err := fn(ctx)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }

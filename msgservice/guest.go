@@ -31,7 +31,7 @@ func QueryGuest(ctx context.Context, api *openapi.Openapi, msg *qbot.WSGroupAtMe
 
 	if len(guestNames) == 0 {
 		_, err = api.PostGroupMessage(ctx, msg.GroupOpenid, &openapi.PostGroupMessageReq{
-			Content: fmt.Sprintf("唔, %s未曾光临本店呢", msg.Content),
+			Content: fmt.Sprintf("%s似乎未曾光临本店呢", msg.Content),
 			MsgType: openapi.MsgTypeText,
 			MsgId:   msg.Id,
 			MsgSeq:  kit.Seq(ctx),

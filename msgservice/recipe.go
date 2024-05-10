@@ -55,12 +55,36 @@ func QueryRecipe(ctx context.Context, api *openapi.Openapi, msg *qbot.WSGroupAtM
 			continue
 		}
 		switch {
-		case kit.SliceContains([]string{"图鉴序"}, arg):
-
+		case kit.SliceContains([]string{"图鉴序", "时间", "单时间", "总时间", "单价", "售价", "金币效率", "耗材效率", "稀有度"}, arg):
+			order = arg
 		case model.IsRarityStr(arg):
-			recipes = filterRecipesByRarity(ctx, recipes, model.RarityToInt(arg))
+			recipes = filterRecipesByRarity(ctx, recipes, model.RarityToInt(arg), strings.HasPrefix(arg, "仅"))
+		case strings.HasSuffix(arg, "技法"):
+			recipes = filterRecipesBySkill(ctx, recipes, arg)
+		case strings.HasPrefix(arg, "技法"):
+			recipes = filterRecipesBySkills(ctx, recipes, strings.Split(strings.TrimPrefix(arg, "技法"), "-"))
+		case kit.SliceContains([]string{"甜味", "酸味", "辣味", "咸味", "苦味", "鲜味"}, arg):
+			recipes = filterRecipesByCondiment(ctx, recipes, strings.TrimSuffix(arg, "味"))
+		case kit.HasPrefixIn(arg, []string{"食材", "材料"}):
+			recipes, err = filterRecipesByMaterials(ctx, recipes, strings.Split(kit.TrimPrefixIn(arg, []string{"食材", "材料"}), "-"))
+		case kit.HasPrefixIn(arg, []string{"贵客", "稀有客人", "客人", "贵宾", "宾客", "稀客"}):
+			recipes, err = filterRecipesByGuests(ctx, recipes, strings.Split(kit.TrimPrefixIn(arg, []string{"贵客", "稀有客人", "客人", "贵宾", "宾客", "稀客"}), "-"))
+		case kit.HasPrefixIn(arg, []string{"符文", "礼物"}):
+			recipes, err = filterRecipesByGifts(ctx, recipes, strings.Split(kit.TrimPrefixIn(arg, []string{"符文", "礼物"}), "-"))
+		case kit.HasPrefixIn(arg, []string{"神级符文", "神级奖励"}):
+			recipes, err = filterRecipesByUpgradeGift(ctx, recipes, strings.TrimPrefix(kit.TrimPrefixIn(arg, []string{"神级符文", "神级奖励"}), "-"))
+		case kit.HasPrefixIn(arg, []string{"调料", "调味", "味道"}):
+			recipes = filterRecipesByCondiment(ctx, recipes, strings.TrimPrefix(kit.TrimPrefixIn(arg, []string{"调料", "调味", "味道"}), "-"))
 		case strings.HasPrefix(arg, "来源"):
 			recipes, err = filterRecipesByOrigins(ctx, recipes, strings.Split(strings.TrimPrefix(arg, "来源"), "-"))
+		case kit.HasPrefixIn(arg, []string{"$", "＄", "￥"}):
+			var price int
+			price, err = strconv.Atoi(arg[1:])
+			if err != nil {
+				err = fmt.Errorf("售价筛选格式错误")
+			} else {
+				recipes = filterRecipesByPrice(ctx, recipes, price)
+			}
 		case strings.HasPrefix(strings.ToLower(arg), "p"):
 			page = kit.ParsePage(arg, 1)
 		default:
@@ -103,7 +127,7 @@ func filterRecipesByIdOrName(ctx context.Context, recipes []model.Recipe, arg st
 		re, err := regexp.Compile(strings.ReplaceAll(arg, "%", ".*"))
 		if err != nil {
 			logrus.WithContext(ctx).Errorf("查询正则格式有误 %v", err)
-			return result, errors.New("查询格式有误")
+			return result, errors.New("菜谱查询格式有误")
 		}
 		for _, recipe := range recipes {
 			if recipe.Name == arg {
@@ -122,21 +146,235 @@ func filterRecipesByIdOrName(ctx context.Context, recipes []model.Recipe, arg st
 }
 
 // filterRecipesByRarity 根据稀有度筛选菜谱
-func filterRecipesByRarity(ctx context.Context, recipes []model.Recipe, rarity int) []model.Recipe {
+func filterRecipesByRarity(ctx context.Context, recipes []model.Recipe, rarity int, mustEqual bool) []model.Recipe {
 	if len(recipes) == 0 {
 		return recipes
 	}
 	return kit.SliceFilter(recipes, func(recipe model.Recipe) bool {
-		return recipe.Rarity >= rarity
+		return (mustEqual && recipe.Rarity == rarity) || (!mustEqual && recipe.Rarity >= rarity)
 	})
+}
+
+// 根据技法筛选菜谱
+func filterRecipesBySkill(ctx context.Context, recipes []model.Recipe, skill string) []model.Recipe {
+	if len(recipes) == 0 || skill == "" {
+		return recipes
+	}
+	return kit.SliceFilter(recipes, func(recipe model.Recipe) bool {
+		return recipe.NeedSkill(skill)
+	})
+}
+
+// 根据技法列表筛选菜谱
+func filterRecipesBySkills(ctx context.Context, recipes []model.Recipe, skills []string) []model.Recipe {
+	if len(recipes) == 0 || len(skills) == 0 {
+		return recipes
+	}
+	result := make([]model.Recipe, len(recipes))
+	copy(result, recipes)
+	for _, skill := range skills {
+		if skill == "" {
+			continue
+		}
+		result = filterRecipesBySkill(ctx, result, skill)
+	}
+	return result
+}
+
+// 根据调料筛选菜谱
+func filterRecipesByCondiment(ctx context.Context, recipes []model.Recipe, condiment string) []model.Recipe {
+	if len(recipes) == 0 || condiment == "" {
+		return recipes
+	}
+	condimentMap := map[string]string{
+		"甜": "Sweet",
+		"酸": "Sour",
+		"辣": "Spicy",
+		"咸": "Salty",
+		"苦": "Bitter",
+		"鲜": "Tasty",
+	}
+	return kit.SliceFilter(recipes, func(recipe model.Recipe) bool {
+		return recipe.Condiment == condimentMap[condiment]
+	})
+}
+
+// filterRecipesByMaterials 根据食材筛选菜谱
+func filterRecipesByMaterial(ctx context.Context, recipes []model.Recipe, material string) ([]model.Recipe, error) {
+	if len(recipes) == 0 || material == "" {
+		return recipes, nil
+	}
+	var materialOrigins []string
+	// 符合下列特征的关键词视为根据来源筛选食材
+	switch material {
+	case "鱼类", "水产", "水产类", "海鲜", "海鲜类":
+		materialOrigins = []string{"池塘"}
+	case "蔬菜", "蔬菜类", "菜类":
+		materialOrigins = []string{"菜棚", "菜地", "森林"}
+	case "肉类":
+		materialOrigins = []string{"牧场", "鸡舍", "猪圈"}
+	case "面类", "加工", " 加工类":
+		materialOrigins = []string{"作坊"}
+	case "菜棚", "菜地", "森林", "牧场", "鸡舍", "猪圈", "作坊", "池塘":
+		materialOrigins = []string{material}
+	}
+	if len(materialOrigins) > 0 {
+		return kit.SliceFilter(recipes, func(recipe model.Recipe) bool {
+			return recipe.HasMaterialFromIn(materialOrigins)
+		}), nil
+	}
+
+	// 先查出具体食材名称
+	materialNames, err := dao.MatchRecipeMaterialName(ctx, material)
+	if err != nil {
+		return recipes, err
+	}
+
+	if len(materialNames) == 0 {
+		return nil, fmt.Errorf("厨师长说没有用%s做过菜", material)
+	}
+	return kit.SliceFilter(recipes, func(recipe model.Recipe) bool {
+		return recipe.UsedMaterials(materialNames)
+	}), nil
+}
+
+// filterRecipesByMaterials 根据食材列表筛选菜谱
+func filterRecipesByMaterials(ctx context.Context, recipes []model.Recipe, materials []string) ([]model.Recipe, error) {
+	if len(recipes) == 0 || len(materials) == 0 {
+		return recipes, nil
+	}
+	result := make([]model.Recipe, len(recipes))
+	copy(result, recipes)
+	var err error
+	for _, material := range materials {
+		if material == "" {
+			continue
+		}
+		result, err = filterRecipesByMaterial(ctx, result, material)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return result, nil
+}
+
+// filterRecipesByGuest 根据贵客筛选菜谱
+func filterRecipesByGuest(ctx context.Context, recipes []model.Recipe, guest string) ([]model.Recipe, error) {
+	if len(recipes) == 0 || guest == "" {
+		return recipes, nil
+	}
+
+	guestNames, err := dao.MatchGuestName(ctx, guest)
+	if err != nil {
+		return recipes, err
+	}
+	if len(guestNames) == 0 {
+		return nil, fmt.Errorf("%s似乎未曾光临本店呢", guest)
+	}
+	guestNameMap := map[string]struct{}{}
+	for _, name := range guestNames {
+		guestNameMap[name] = struct{}{}
+	}
+
+	return kit.SliceFilter(recipes, func(recipe model.Recipe) bool {
+		for i := range recipe.GuestGifts {
+			if _, ok := guestNameMap[recipe.GuestGifts[i].GuestName]; ok {
+				return true
+			}
+		}
+		return false
+	}), nil
+}
+
+// filterRecipesByGuest 根据贵客列表筛选菜谱
+func filterRecipesByGuests(ctx context.Context, recipes []model.Recipe, guests []string) ([]model.Recipe, error) {
+	if len(recipes) == 0 || len(guests) == 0 {
+		return recipes, nil
+	}
+	result := make([]model.Recipe, len(recipes))
+	copy(result, recipes)
+	var err error
+	for _, guest := range guests {
+		if guest == "" {
+			continue
+		}
+		result, err = filterRecipesByGuest(ctx, result, guest)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return result, nil
+}
+
+// filterRecipesByGift 根据符文礼物筛选菜谱
+func filterRecipesByGift(ctx context.Context, recipes []model.Recipe, gift string) ([]model.Recipe, error) {
+	if len(recipes) == 0 || gift == "" {
+		return recipes, nil
+	}
+
+	giftNames, err := dao.MatchGiftName(ctx, gift)
+	if err != nil {
+		return recipes, err
+	}
+	if len(giftNames) == 0 {
+		return []model.Recipe{}, nil
+	}
+
+	giftNameMap := map[string]struct{}{}
+	for _, name := range giftNames {
+		giftNameMap[name] = struct{}{}
+	}
+	return kit.SliceFilter(recipes, func(recipe model.Recipe) bool {
+		for i := range recipe.GuestGifts {
+			if _, ok := giftNameMap[recipe.GuestGifts[i].Antique]; ok {
+				return true
+			}
+		}
+		return false
+	}), nil
+}
+
+// filterRecipesByGift 根据符文礼物列表筛选菜谱
+func filterRecipesByGifts(ctx context.Context, recipes []model.Recipe, gifts []string) ([]model.Recipe, error) {
+	if len(recipes) == 0 || len(gifts) == 0 {
+		return recipes, nil
+	}
+	result := make([]model.Recipe, len(recipes))
+	copy(result, recipes)
+	var err error
+	for _, gift := range gifts {
+		if gift == "" {
+			continue
+		}
+		result, err = filterRecipesByGift(ctx, result, gift)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return result, nil
+}
+
+// filterRecipesByUpgradeGift 根据菜谱神级礼物筛选菜谱
+func filterRecipesByUpgradeGift(ctx context.Context, recipes []model.Recipe, upgradeGift string) ([]model.Recipe, error) {
+	if len(recipes) == 0 || upgradeGift == "" {
+		return recipes, nil
+	}
+	pattern := strings.ReplaceAll(upgradeGift, "%", ".*")
+	re, err := regexp.Compile(pattern)
+	if err != nil {
+		return nil, errors.New("神级奖励查询格式有误")
+	}
+	return kit.SliceFilter(recipes, func(recipe model.Recipe) bool {
+		return re.MatchString(recipe.Gift)
+	}), nil
 }
 
 // filterRecipesByOrigins 根据来源筛选菜谱
 func filterRecipesByOrigins(ctx context.Context, recipes []model.Recipe, origins []string) ([]model.Recipe, error) {
-	if len(recipes) == 0 || origins == nil {
+	if len(recipes) == 0 || len(origins) == 0 {
 		return recipes, nil
 	}
-	result := make([]model.Recipe, 0)
+	result := make([]model.Recipe, len(recipes))
 	copy(result, recipes)
 	for _, origin := range origins {
 		if origin == "" {
@@ -165,6 +403,16 @@ func filterRecipesByOrigins(ctx context.Context, recipes []model.Recipe, origins
 	return result, nil
 }
 
+// filterRecipesByPrice 根据价格筛选菜谱
+func filterRecipesByPrice(ctx context.Context, recipes []model.Recipe, price int) []model.Recipe {
+	if len(recipes) == 0 || price == 0 {
+		return recipes
+	}
+	return kit.SliceFilter(recipes, func(recipe model.Recipe) bool {
+		return recipe.Price >= price
+	})
+}
+
 func sortRecipes(recipes []model.Recipe, order string) []model.Recipe {
 	if len(recipes) == 0 {
 		return recipes
@@ -178,6 +426,31 @@ func sortRecipes(recipes []model.Recipe, order string) []model.Recipe {
 		sort.Slice(recipes, func(i, j int) bool {
 			return recipes[i].Rarity == recipes[j].Rarity && recipes[i].RecipeId < recipes[j].RecipeId ||
 				recipes[i].Rarity > recipes[j].Rarity
+		})
+	case "时间", "单时间":
+		sort.Slice(recipes, func(i, j int) bool {
+			return recipes[i].Time == recipes[j].Time && recipes[i].RecipeId < recipes[j].RecipeId ||
+				recipes[i].Time < recipes[j].Time
+		})
+	case "总时间":
+		sort.Slice(recipes, func(i, j int) bool {
+			return recipes[i].TotalTime == recipes[j].TotalTime && recipes[i].RecipeId < recipes[j].RecipeId ||
+				recipes[i].TotalTime < recipes[j].TotalTime
+		})
+	case "单价", "售价":
+		sort.Slice(recipes, func(i, j int) bool {
+			return recipes[i].Price == recipes[j].Price && recipes[i].RecipeId < recipes[j].RecipeId ||
+				recipes[i].Price > recipes[j].Price
+		})
+	case "金币效率":
+		sort.Slice(recipes, func(i, j int) bool {
+			return recipes[i].GoldEfficiency == recipes[j].GoldEfficiency && recipes[i].RecipeId < recipes[j].RecipeId ||
+				recipes[i].GoldEfficiency > recipes[j].GoldEfficiency
+		})
+	case "耗材效率":
+		sort.Slice(recipes, func(i, j int) bool {
+			return recipes[i].MaterialEfficiency == recipes[j].MaterialEfficiency && recipes[i].RecipeId < recipes[j].RecipeId ||
+				recipes[i].MaterialEfficiency > recipes[j].MaterialEfficiency
 		})
 	}
 	return recipes

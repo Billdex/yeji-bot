@@ -17,12 +17,12 @@ var (
 	cacheMainQuestsList = make([]model.Quest, 0)
 )
 
-func ReloadQuests(ctx context.Context) ([]model.Quest, error) {
+func ReloadQuests(ctx context.Context) error {
 	list := make([]model.Quest, 0)
 	err := DB.WithContext(ctx).Find(&list).Error
 	if err != nil {
 		logrus.WithContext(ctx).Errorf("db.Find(quests) fail. err: %v", err)
-		return nil, errors.New("加载任务数据失败")
+		return errors.New("加载任务数据失败")
 	}
 	tmpQuestsMap := make(map[int]model.Quest)
 	tmpQuestTypesMap := make(map[string][]model.Quest)
@@ -44,7 +44,7 @@ func ReloadQuests(ctx context.Context) ([]model.Quest, error) {
 	})
 	cacheMainQuestsList = tmpMainQuestsList
 
-	return list, nil
+	return nil
 }
 
 // FindQuestTypeList 查询符合条件的任务类型
@@ -75,7 +75,7 @@ func GetMainQuestById(ctx context.Context, questId int) (model.Quest, error) {
 
 func FindQuestsByIds(ctx context.Context, questIds []int) ([]model.Quest, error) {
 	if len(cacheQuestsMap) == 0 {
-		_, err := ReloadQuests(ctx)
+		err := ReloadQuests(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -99,7 +99,7 @@ func ListMainQuestsWithLimit(ctx context.Context, questId int, limit int) ([]mod
 		limit = 5
 	}
 	if len(cacheMainQuestsList) == 0 {
-		_, err := ReloadQuests(ctx)
+		err := ReloadQuests(ctx)
 		if err != nil {
 			return nil, err
 		}

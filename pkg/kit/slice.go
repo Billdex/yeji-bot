@@ -29,6 +29,15 @@ func SliceContains[T comparable](arr []T, item T) bool {
 	return false
 }
 
+func HasPrefixIn(str string, prefixes []string) bool {
+	for _, prefix := range prefixes {
+		if strings.HasPrefix(str, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
 func HasSuffixIn(str string, suffixes []string) bool {
 	for _, suffix := range suffixes {
 		if strings.HasSuffix(str, suffix) {
@@ -36,4 +45,22 @@ func HasSuffixIn(str string, suffixes []string) bool {
 		}
 	}
 	return false
+}
+
+func WhichPrefixIn(str string, prefixes []string) string {
+	for _, prefix := range prefixes {
+		if strings.HasPrefix(str, prefix) {
+			return prefix
+		}
+	}
+	return ""
+}
+
+func TrimPrefixIn(str string, prefixes []string) string {
+	for _, prefix := range prefixes {
+		if strings.HasPrefix(str, prefix) {
+			return strings.TrimPrefix(str, prefix)
+		}
+	}
+	return str
 }

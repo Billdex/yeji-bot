@@ -54,6 +54,8 @@ func QueryEquip(ctx context.Context, api *openapi.Openapi, msg *qbot.WSGroupAtMe
 			continue
 		}
 		switch {
+		case kit.SliceContains([]string{"图鉴序", "稀有度"}, arg):
+			order = arg
 		case model.IsRarityStr(arg):
 			equips = filterEquipsByRarity(ctx, equips, model.RarityToInt(arg))
 		default:
@@ -98,7 +100,7 @@ func filterEquipsByIdOrName(ctx context.Context, equips []model.Equip, arg strin
 		re, err := regexp.Compile(strings.ReplaceAll(arg, "%", ".*"))
 		if err != nil {
 			logrus.WithContext(ctx).Errorf("查询正则格式有误 raw: %s, err: %v", arg, err)
-			return nil, errors.New("查询格式有误")
+			return nil, errors.New("厨具查询格式有误")
 		}
 		for i := range equips {
 			if equips[i].Name == arg {

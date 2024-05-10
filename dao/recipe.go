@@ -15,12 +15,12 @@ var (
 	cacheRecipeMaterialsMap = make(map[string][]model.RecipeMaterial)
 )
 
-func ReloadRecipes(ctx context.Context) ([]model.Recipe, error) {
+func ReloadRecipes(ctx context.Context) error {
 	var recipes []model.Recipe
 	err := DB.WithContext(ctx).Find(&recipes).Error
 	if err != nil {
 		logrus.WithContext(ctx).Errorf("db.Find(recipes) fail. err: %v", err)
-		return nil, errors.New("加载菜谱数据失败")
+		return errors.New("加载菜谱数据失败")
 	}
 
 	recipeMaterialsMap := make(map[string][]model.RecipeMaterial)
@@ -48,12 +48,12 @@ func ReloadRecipes(ctx context.Context) ([]model.Recipe, error) {
 	}
 	cacheRecipeMaterialsMap = recipeMaterialsMap
 	cacheRecipeList = recipes
-	return recipes, nil
+	return nil
 }
 
 func ListAllRecipes(ctx context.Context) ([]model.Recipe, error) {
 	if len(cacheRecipeList) == 0 {
-		_, err := ReloadRecipes(ctx)
+		err := ReloadRecipes(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -63,7 +63,7 @@ func ListAllRecipes(ctx context.Context) ([]model.Recipe, error) {
 
 func MatchRecipeMaterialName(ctx context.Context, materialName string) ([]string, error) {
 	if len(cacheRecipeMaterialsMap) == 0 {
-		_, err := ReloadRecipes(ctx)
+		err := ReloadRecipes(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -72,7 +72,7 @@ func MatchRecipeMaterialName(ctx context.Context, materialName string) ([]string
 	re, err := regexp.Compile(strings.ReplaceAll(materialName, "%", ".*"))
 	if err != nil {
 		logrus.WithContext(ctx).Errorf("regexp compile fail. raw str: %s, err: %v", materialName, err)
-		return nil, errors.New("查询格式有误")
+		return nil, errors.New("食材查询格式有误")
 	}
 	names := make([]string, 0, 10)
 	for material := range cacheRecipeMaterialsMap {
@@ -90,7 +90,7 @@ func MatchRecipeMaterialName(ctx context.Context, materialName string) ([]string
 
 func ListRecipeMaterials(ctx context.Context, materialName string) ([]model.RecipeMaterial, error) {
 	if len(cacheRecipeMaterialsMap) == 0 {
-		_, err := ReloadRecipes(ctx)
+		err := ReloadRecipes(ctx)
 		if err != nil {
 			return nil, err
 		}

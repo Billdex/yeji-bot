@@ -94,6 +94,13 @@ func UpdateData(ctx context.Context, api *openapi.Openapi, msg *qbot.WSGroupAtMe
 	logrus.WithContext(ctx).Infof("获取图鉴网数据完毕，耗时: %s", stepTime)
 	contentMsg += fmt.Sprintf("获取图鉴网数据耗时: %s\n", stepTime)
 
+	defer func(ctx context.Context) {
+		err = dao.ReloadAllCache(ctx)
+		if err != nil {
+			logrus.WithContext(ctx).Errorf("ReloadAllCache fail. err: %v", err)
+		}
+	}(ctx)
+
 	// 更新厨师数据
 	stepStart = time.Now()
 	err = updateChefs(ctx, gameData.Chefs)
@@ -355,6 +362,7 @@ func updateRecipes(ctx context.Context, recipesData []gamedata.RecipeData, mater
 				MaterialId:   materialData.MaterialId,
 				MaterialName: mMaterials[materialData.MaterialId].Name,
 				Quantity:     materialData.Quantity,
+				Origin:       mMaterials[materialData.MaterialId].Origin,
 			})
 			materialSum += materialData.Quantity
 		}

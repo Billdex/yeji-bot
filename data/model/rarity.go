@@ -1,5 +1,7 @@
 package model
 
+import "strings"
+
 var rarityStrToIntMap = map[string]int{
 	"1火": 1, "1星": 1, "一火": 1, "一星": 1,
 	"2火": 2, "2星": 2, "二火": 2, "二星": 2, "两火": 2, "两星": 2,
@@ -9,10 +11,10 @@ var rarityStrToIntMap = map[string]int{
 }
 
 func IsRarityStr(rarity string) bool {
-	_, ok := rarityStrToIntMap[rarity]
+	_, ok := rarityStrToIntMap[strings.TrimPrefix(rarity, "仅")]
 	return ok
 }
 
 func RarityToInt(rarity string) int {
-	return rarityStrToIntMap[rarity]
+	return rarityStrToIntMap[strings.TrimPrefix(rarity, "仅")]
 }

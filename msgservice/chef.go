@@ -55,6 +55,8 @@ func QueryChef(ctx context.Context, api *openapi.Openapi, msg *qbot.WSGroupAtMes
 			continue
 		}
 		switch {
+		case kit.SliceContains([]string{"图鉴序", "稀有度"}, arg):
+			order = arg
 		case model.IsRarityStr(arg): // 根据稀有度筛选
 			chefs = filterChefsByRarity(ctx, chefs, model.RarityToInt(arg))
 		case strings.HasPrefix(arg, "来源"):
@@ -103,7 +105,7 @@ func filterChefsByIdOrName(ctx context.Context, chefs []model.Chef, arg string) 
 		re, err := regexp.Compile(strings.ReplaceAll(arg, "%", ".*"))
 		if err != nil {
 			logrus.WithContext(ctx).Errorf("查询正则格式有误 raw: %s, err: %v", arg, err)
-			return nil, errors.New("查询格式有误")
+			return nil, errors.New("厨师查询格式有误")
 		}
 		for i := range chefs {
 			if chefs[i].Name == arg {
@@ -136,7 +138,7 @@ func filterChefsByOrigins(ctx context.Context, chefs []model.Chef, origins []str
 	if len(chefs) == 0 || len(origins) == 0 {
 		return chefs, nil
 	}
-	result := make([]model.Chef, 0)
+	result := make([]model.Chef, len(chefs))
 	copy(result, chefs)
 	for _, origin := range origins {
 		if origin == "" {
@@ -152,7 +154,7 @@ func filterChefsByOrigins(ctx context.Context, chefs []model.Chef, origins []str
 			logrus.WithContext(ctx).Errorf("查询正则格式有误. raw: %s, err: %v", pattern, err)
 			return nil, errors.New("来源筛选格式有误")
 		}
-		result = kit.SliceFilter(chefs, func(chef model.Chef) bool {
+		result = kit.SliceFilter(result, func(chef model.Chef) bool {
 			for i := range chef.Origins {
 				if re.MatchString(chef.Origins[i]) {
 					return true

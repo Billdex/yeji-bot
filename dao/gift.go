@@ -15,10 +15,10 @@ var (
 	cacheGuestGiftsMap   = make(map[string][]model.Gift)
 )
 
-func ReloadGifts(ctx context.Context) (map[string][]model.Gift, error) {
+func ReloadGifts(ctx context.Context) error {
 	recipes, err := ListAllRecipes(ctx)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	antiqueGiftsMap := make(map[string][]model.Gift)
 	guestGiftsMap := make(map[string][]model.Gift)
@@ -57,12 +57,12 @@ func ReloadGifts(ctx context.Context) (map[string][]model.Gift, error) {
 
 	cacheAntiqueGiftsMap = antiqueGiftsMap
 	cacheGuestGiftsMap = guestGiftsMap
-	return antiqueGiftsMap, nil
+	return nil
 }
 
 func MatchGuestName(ctx context.Context, guestName string) ([]string, error) {
 	if len(cacheGuestGiftsMap) == 0 {
-		_, err := ReloadGifts(ctx)
+		err := ReloadGifts(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -70,7 +70,7 @@ func MatchGuestName(ctx context.Context, guestName string) ([]string, error) {
 	re, err := regexp.Compile(strings.ReplaceAll(guestName, "%", ".*"))
 	if err != nil {
 		logrus.WithContext(ctx).Errorf("regexp compile fail. raw str: %s, err: %v", guestName, err)
-		return nil, errors.New("查询格式有误")
+		return nil, errors.New("贵客查询格式有误")
 	}
 	names := make([]string, 0, 10)
 	for guest := range cacheGuestGiftsMap {
@@ -88,7 +88,7 @@ func MatchGuestName(ctx context.Context, guestName string) ([]string, error) {
 
 func ListGuestGifts(ctx context.Context, guestName string) ([]model.Gift, error) {
 	if len(cacheGuestGiftsMap) == 0 {
-		_, err := ReloadGifts(ctx)
+		err := ReloadGifts(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -103,7 +103,7 @@ func ListGuestGifts(ctx context.Context, guestName string) ([]model.Gift, error)
 // MatchGiftName 匹配贵客礼物名称
 func MatchGiftName(ctx context.Context, giftName string) ([]string, error) {
 	if len(cacheAntiqueGiftsMap) == 0 {
-		_, err := ReloadGifts(ctx)
+		err := ReloadGifts(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -111,7 +111,7 @@ func MatchGiftName(ctx context.Context, giftName string) ([]string, error) {
 	re, err := regexp.Compile(strings.ReplaceAll(giftName, "%", ".*"))
 	if err != nil {
 		logrus.WithContext(ctx).Errorf("regexp compile fail. raw str: %s, err: %v", giftName, err)
-		return nil, errors.New("查询格式有误")
+		return nil, errors.New("符文礼物查询格式有误")
 	}
 	names := make([]string, 0, 10)
 	for antique := range cacheAntiqueGiftsMap {
@@ -129,7 +129,7 @@ func MatchGiftName(ctx context.Context, giftName string) ([]string, error) {
 
 func ListAntiqueGifts(ctx context.Context, giftName string) ([]model.Gift, error) {
 	if len(cacheAntiqueGiftsMap) == 0 {
-		_, err := ReloadGifts(ctx)
+		err := ReloadGifts(ctx)
 		if err != nil {
 			return nil, err
 		}

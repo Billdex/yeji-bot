@@ -11,24 +11,24 @@ var (
 	cacheSkillsMap = make(map[int]model.Skill)
 )
 
-func ReloadSkills(ctx context.Context) ([]model.Skill, error) {
+func ReloadSkills(ctx context.Context) error {
 	list := make([]model.Skill, 0)
 	err := DB.WithContext(ctx).Find(&list).Error
 	if err != nil {
 		logrus.WithContext(ctx).Errorf("db.Find(skills) fail. err: %v", err)
-		return nil, errors.New("加载技能数据失败")
+		return errors.New("加载技能数据失败")
 	}
 	tmpSkillsMap := make(map[int]model.Skill)
 	for _, skill := range list {
 		tmpSkillsMap[skill.SkillId] = skill
 	}
 	cacheSkillsMap = tmpSkillsMap
-	return list, nil
+	return nil
 }
 
 func GetSkillsMapByIds(ctx context.Context, skillIds []int) (map[int]model.Skill, error) {
 	if len(cacheSkillsMap) == 0 {
-		_, err := ReloadSkills(ctx)
+		err := ReloadSkills(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -46,7 +46,7 @@ func GetSkillsMapByIds(ctx context.Context, skillIds []int) (map[int]model.Skill
 
 func GetSkillById(ctx context.Context, skillId int) (model.Skill, error) {
 	if len(cacheSkillsMap) == 0 {
-		_, err := ReloadSkills(ctx)
+		err := ReloadSkills(ctx)
 		if err != nil {
 			return model.Skill{}, err
 		}
