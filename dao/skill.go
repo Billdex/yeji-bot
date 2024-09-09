@@ -44,7 +44,11 @@ func GetSkillsMapByIds(ctx context.Context, skillIds []int) (map[int]model.Skill
 	for _, skillId := range skillIds {
 		skill, ok := cacheSkillsMap[skillId]
 		if !ok {
-			return nil, errors.New("技能不存在")
+			skill = model.Skill{
+				SkillId:     skillId,
+				Description: "无",
+				Effects:     make([]model.SkillEffect, 0),
+			}
 		}
 		m[skillId] = skill
 	}
