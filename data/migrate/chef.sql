@@ -17,7 +17,7 @@ CREATE TABLE `chef`
     `fish`           int          NOT NULL DEFAULT 0 COMMENT '鱼类采集数值',
     `vegetable`      int          NOT NULL DEFAULT 0 COMMENT '菜类采集数值',
     `skill_id`       int          NOT NULL DEFAULT 0 COMMENT '技能 id',
-    `ultimate_goals` varchar(255)  NOT NULL DEFAULT '[]' COMMENT '修炼任务id数组',
+    `ultimate_goals` varchar(255) NOT NULL DEFAULT '[]' COMMENT '修炼任务id数组',
     `ultimate_skill` int          NOT NULL DEFAULT 0 COMMENT '修炼技能',
     `sweet`          int          NOT NULL DEFAULT 0 COMMENT '甜调味数值',
     `sour`           int          NOT NULL DEFAULT 0 COMMENT '酸调味数值',
@@ -25,7 +25,9 @@ CREATE TABLE `chef`
     `salty`          int          NOT NULL DEFAULT 0 COMMENT '咸调味数值',
     `bitter`         int          NOT NULL DEFAULT 0 COMMENT '苦调味数值',
     `tasty`          int          NOT NULL DEFAULT 0 COMMENT '鲜调味数值',
-    `img`            varchar(255) COMMENT '厨师图片',
+    `img`            varchar(255) NOT NULL DEFAULT '' COMMENT '厨师图片',
+    `disk_info`      varchar(60)  NOT NULL DEFAULT '[]' COMMENT '心法盘孔位',
+    `disk_level`     int          NOT NULL DEFAULT 3 COMMENT '心法盘最高等级',
     PRIMARY KEY (`chef_id`),
     UNIQUE KEY `uniq_gallery_id` (`gallery_id`)
 ) ENGINE = InnoDB

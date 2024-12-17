@@ -1,5 +1,10 @@
 package model
 
+import (
+	"strings"
+	"yeji-bot/pkg/kit"
+)
+
 // Chef 厨师数据对应的数据库模型
 type Chef struct {
 	ChefId        int      `gorm:"column:chef_id"`                        // 厨师 id
@@ -28,6 +33,8 @@ type Chef struct {
 	UltimateGoals []int    `gorm:"column:ultimate_goals;serializer:json"` // 修炼任务id数组
 	UltimateSkill int      `gorm:"column:ultimate_skill"`                 // 修炼效果id
 	Img           string   `gorm:"column:img"`                            // 图片地址
+	DiskInfo      []int    `gorm:"column:disk_info;serializer:json"`      // 心法盘孔位数据
+	DiskLevel     int      `gorm:"column:disk_level"`                     // 心法盘最大等级
 
 	SkillDesc         string `gorm:"-"` // 技能描述
 	UltimateSkillDesc string `gorm:"-"` // 修炼技能描述
@@ -35,4 +42,19 @@ type Chef struct {
 
 func (Chef) TableName() string {
 	return "chef"
+}
+
+// DiskInfoFmt 心法盘数据
+func (c Chef) DiskInfoFmt() string {
+	return strings.Join(kit.SliceMap(c.DiskInfo, func(d int) string {
+		switch d {
+		case 1:
+			return "红"
+		case 2:
+			return "绿"
+		case 3:
+			return "蓝"
+		}
+		return ""
+	}), "|")
 }

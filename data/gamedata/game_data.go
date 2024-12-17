@@ -11,4 +11,5 @@ type GameData struct {
 	Decorations []Decoration   `json:"decorations"` // 装修家具
 	Condiments  []Condiment    `json:"condiments"`  // 调料
 	Quests      []QuestData    `json:"quests"`      // 任务
+	Disks       []DiskData     `json:"disks"`       // 心法盘数据
 }

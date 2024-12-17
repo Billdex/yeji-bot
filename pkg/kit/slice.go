@@ -64,3 +64,11 @@ func TrimPrefixIn(str string, prefixes []string) string {
 	}
 	return str
 }
+
+func SliceToMap[T any, key comparable](arr []T, keyFunc func(T) key) map[key]T {
+	m := make(map[key]T, len(arr))
+	for i := range arr {
+		m[keyFunc(arr[i])] = arr[i]
+	}
+	return m
+}

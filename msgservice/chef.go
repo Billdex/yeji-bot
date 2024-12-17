@@ -265,6 +265,7 @@ func generateChefMessage(ctx context.Context, chef model.Chef) openapi.PostGroup
 	msg += fmt.Sprintf("炒:%d 烤:%d 煮:%d\n", chef.Stirfry, chef.Bake, chef.Boil)
 	msg += fmt.Sprintf("蒸:%d 炸:%d 切:%d\n", chef.Steam, chef.Fry, chef.Cut)
 	msg += fmt.Sprintf("🍖:%d 🍞:%d 🥕:%d 🐟:%d\n", chef.Meat, chef.Flour, chef.Vegetable, chef.Fish)
+	msg += fmt.Sprintf("心法盘: %s 最高%d级\n", chef.DiskInfoFmt(), chef.DiskLevel)
 	msg += fmt.Sprintf("技能:%s\n", mSkills[chef.SkillId].Description)
 	msg += fmt.Sprintf("修炼效果:%s\n", mSkills[chef.UltimateSkill].Description)
 	msg += fmt.Sprintf("修炼任务:%s", goals)

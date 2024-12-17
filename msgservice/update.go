@@ -103,7 +103,7 @@ func UpdateData(ctx context.Context, api *openapi.Openapi, msg *qbot.WSGroupAtMe
 
 	// 更新厨师数据
 	stepStart = time.Now()
-	err = updateChefs(ctx, gameData.Chefs)
+	err = updateChefs(ctx, gameData.Chefs, gameData.Disks)
 	if err != nil {
 		logrus.WithContext(ctx).Errorf("更新厨师数据失败. err: %v", err)
 		_, err = api.PostGroupMessage(ctx, msg.GroupOpenid, &openapi.PostGroupMessageReq{
@@ -253,12 +253,14 @@ func requestData(baseURL string) (gamedata.GameData, error) {
 }
 
 // updateChefs 更新厨师数据
-func updateChefs(ctx context.Context, chefsData []gamedata.ChefData) error {
+func updateChefs(ctx context.Context, chefsData []gamedata.ChefData, disksData []gamedata.DiskData) error {
 	if len(chefsData) == 0 {
 		return errors.New("厨师数据为空")
 	}
+	diskMap := kit.SliceToMap(disksData, func(d gamedata.DiskData) int { return d.DiskId })
 	chefs := make([]model.Chef, 0)
 	for _, chefData := range chefsData {
+		disk := diskMap[chefData.Disk]
 		chef := model.Chef{
 			ChefId:        chefData.ChefId,
 			Name:          chefData.Name,
@@ -284,6 +286,8 @@ func updateChefs(ctx context.Context, chefsData []gamedata.ChefData) error {
 			SkillId:       chefData.SkillId,
 			UltimateGoals: chefData.UltimateGoals,
 			UltimateSkill: chefData.UltimateSkill,
+			DiskInfo:      disk.Info,
+			DiskLevel:     disk.MaxLevel,
 		}
 		if len(chefData.Tags) > 0 {
 			chef.Gender = chefData.Tags[0]
