@@ -16,4 +16,5 @@ func Register(s *scheduler.GroupAtMessageHandlerScheduler) {
 	s.Register("/贵客", QueryGuest).Middlewares(middleware.Helper(guestHelperStr()))
 	s.Register("/符文", QueryAntique).Middlewares(middleware.Helper(antiqueHelperStr()))
 	s.Register("/任务", QueryQuest).Middlewares(middleware.Helper(questHelperStr()))
+	s.Register("/抽签", QueryTarot)
 }

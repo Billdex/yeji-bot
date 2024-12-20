@@ -130,6 +130,10 @@ func (p *PostGroupMessageResp) Unmarshal(bytes []byte) error {
 
 func (o *Openapi) PostGroupMessage(ctx context.Context, groupOpenid string, req *PostGroupMessageReq) (*PostGroupMessageResp, error) {
 	resp := new(PostGroupMessageResp)
+	if req.MsgType == MsgTypeText || req.MsgType == MsgTypeMarkdown {
+		// 回复消息会带 at, 为保证文本格式首行换行
+		req.Content = "\n" + req.Content
+	}
 	err := o.request(ctx, req, resp, map[string]string{
 		"group_openid": groupOpenid,
 	})
