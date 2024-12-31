@@ -15,7 +15,7 @@ type WSPayload struct {
 // WSPayloadBase 基础消息结构，排除了 data
 type WSPayloadBase struct {
 	OPCode OPCode    `json:"op"`
-	Seq    int       `json:"s,omitempty"`
+	Seq    int64     `json:"s,omitempty"`
 	Type   EventType `json:"t,omitempty"`
 }
 
@@ -39,7 +39,7 @@ type IdentityProperties struct {
 type WSResumeData struct {
 	Token     string `json:"token"`
 	SessionID string `json:"session_id"`
-	Seq       int    `json:"seq"`
+	Seq       int64  `json:"seq"`
 }
 
 // 以下为会收到的事件data

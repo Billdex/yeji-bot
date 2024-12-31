@@ -23,7 +23,7 @@ type Session struct {
 	URL     string
 	Token   Token
 	Intent  Intent
-	LastSeq int
+	LastSeq int64
 	User    LoginUser
 }
 

@@ -8,6 +8,7 @@ import (
 func Register(s *scheduler.GroupAtMessageHandlerScheduler) {
 	s.Register("/帮助", IntroHelp)
 	s.Register("/更新", UpdateData).Middlewares(middleware.MustAdmin())
+	s.Register("/cache", CacheAdmin).Middlewares(middleware.MustAdmin())
 
 	s.Register("/厨师", QueryChef).Middlewares(middleware.Helper(chefHelperStr()))
 	s.Register("/菜谱", QueryRecipe).Middlewares(middleware.Helper(recipeHelperStr()))
@@ -16,5 +17,6 @@ func Register(s *scheduler.GroupAtMessageHandlerScheduler) {
 	s.Register("/贵客", QueryGuest).Middlewares(middleware.Helper(guestHelperStr()))
 	s.Register("/符文", QueryAntique).Middlewares(middleware.Helper(antiqueHelperStr()))
 	s.Register("/任务", QueryQuest).Middlewares(middleware.Helper(questHelperStr()))
+	s.Register("/后厨", QueryComboRecipe).Middlewares(middleware.Helper(comboRecipeHelperStr()))
 	s.Register("/抽签", QueryTarot)
 }

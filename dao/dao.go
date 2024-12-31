@@ -54,10 +54,12 @@ func ReloadAllCache(ctx context.Context) error {
 	for _, fn := range []func(context.Context) error{
 		ReloadChefs,
 		ReloadRecipes,
+		ReloadComboRecipes,
 		ReloadEquips,
 		ReloadGifts,
 		ReloadSkills,
 		ReloadQuests,
+		ReloadTarots,
 	} {
 		err := fn(ctx)
 		if err != nil {

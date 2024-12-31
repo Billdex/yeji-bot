@@ -15,6 +15,7 @@ import (
 	"time"
 	"yeji-bot/bot/openapi"
 	"yeji-bot/bot/qbot"
+	"yeji-bot/config"
 	"yeji-bot/dao"
 	"yeji-bot/data/gamedata"
 	"yeji-bot/data/model"
@@ -35,6 +36,9 @@ var (
 
 // UpdateData 更新游戏数据
 func UpdateData(ctx context.Context, api *openapi.Openapi, msg *qbot.WSGroupAtMessageData) (err error) {
+	if msg.Content == "test" && !config.AppConfig.Bot.Sandbox {
+		return nil
+	}
 	updateMux.Lock()
 	if updateState {
 		_, err = api.PostGroupMessage(ctx, msg.GroupOpenid, &openapi.PostGroupMessageReq{
@@ -327,7 +331,9 @@ func updateRecipes(ctx context.Context, recipesData []gamedata.RecipeData, mater
 		Combos []string
 	}, len(combosData))
 	mRecipeGuestsData := make(map[string][]model.RecipeGuestGift)
+	mRecipeNames := make(map[int]string, len(recipesData))
 	for i := range recipesData {
+		mRecipeNames[recipesData[i].RecipeId] = recipesData[i].Name
 		mIdToNameCombo[recipesData[i].RecipeId] = struct {
 			Name   string
 			Combos []string
@@ -335,7 +341,13 @@ func updateRecipes(ctx context.Context, recipesData []gamedata.RecipeData, mater
 		mRecipeGuestsData[recipesData[i].Name] = []model.RecipeGuestGift{}
 	}
 	// 预处理后厨合成菜数据
+	dbComboRecipes := make([]model.ComboRecipe, 0, len(recipesData))
 	for _, combo := range combosData {
+		dbComboRecipes = append(dbComboRecipes, model.ComboRecipe{
+			RecipeId:      combo.RecipeId,
+			RecipeName:    mRecipeNames[combo.RecipeId],
+			NeedRecipeIds: combo.Recipes,
+		})
 		for _, recipeId := range combo.Recipes {
 			nameComboData := mIdToNameCombo[recipeId]
 			nameComboData.Combos = append(nameComboData.Combos, mIdToNameCombo[combo.RecipeId].Name)
@@ -408,6 +420,16 @@ func updateRecipes(ctx context.Context, recipesData []gamedata.RecipeData, mater
 		err = tx.Create(&recipes).Error
 		if err != nil {
 			logrus.WithContext(ctx).Errorf("try insert all recipes data fail. err: %v", err)
+			return err
+		}
+		err = tx.Exec(`truncate table combo_recipe`).Error
+		if err != nil {
+			logrus.WithContext(ctx).Errorf("try truncate table combo_recipe fail. err: %v", err)
+			return err
+		}
+		err = tx.Create(&dbComboRecipes).Error
+		if err != nil {
+			logrus.WithContext(ctx).Errorf("try insert all combo recipes data fail. err: %v", err)
 			return err
 		}
 		return nil
@@ -580,4 +602,43 @@ func updateQuests(ctx context.Context, questsData []gamedata.QuestData) error {
 	})
 
 	return err
+}
+
+// CacheAdmin 缓存管理
+func CacheAdmin(ctx context.Context, api *openapi.Openapi, msg *qbot.WSGroupAtMessageData) (err error) {
+	switch strings.TrimSpace(strings.ToLower(msg.Content)) {
+	case "reload":
+		err = dao.ReloadAllCache(ctx)
+		if err != nil {
+			logrus.WithContext(ctx).Errorf("try reload all cache fail. err: %v", err)
+			_, err = api.PostGroupMessage(ctx, msg.GroupOpenid, &openapi.PostGroupMessageReq{
+				Content: fmt.Sprintf("try reload all cache fail. err: %v", err),
+				MsgType: openapi.MsgTypeText,
+				MsgId:   msg.Id,
+				MsgSeq:  kit.Seq(ctx),
+			})
+			return nil
+		}
+		_, err = api.PostGroupMessage(ctx, msg.GroupOpenid, &openapi.PostGroupMessageReq{
+			Content: fmt.Sprintf("reload cache success"),
+			MsgType: openapi.MsgTypeText,
+			MsgId:   msg.Id,
+			MsgSeq:  kit.Seq(ctx),
+		})
+		if err != nil {
+			logrus.WithContext(ctx).Errorf("post msg fail. err: %v", err)
+		}
+		return nil
+	default:
+		_, err = api.PostGroupMessage(ctx, msg.GroupOpenid, &openapi.PostGroupMessageReq{
+			Content: fmt.Sprintf("unknown cache instruction"),
+			MsgType: openapi.MsgTypeText,
+			MsgId:   msg.Id,
+			MsgSeq:  kit.Seq(ctx),
+		})
+		if err != nil {
+			logrus.WithContext(ctx).Errorf("post msg fail. err: %v", err)
+		}
+		return nil
+	}
 }

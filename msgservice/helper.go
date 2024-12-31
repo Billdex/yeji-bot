@@ -99,3 +99,11 @@ func questHelperStr() string {
 	sb.WriteString("示例「/任务 100」 「/任务 100 5」")
 	return sb.String()
 }
+
+func comboRecipeHelperStr() string {
+	sb := strings.Builder{}
+	sb.WriteString("【后厨合成菜谱查询】\n")
+	sb.WriteString("提供后厨菜谱的所需前置菜谱与来源信息\n")
+	sb.WriteString("示例「/后厨 年夜饭」 「/后厨 沙县轻食」")
+	return sb.String()
+}

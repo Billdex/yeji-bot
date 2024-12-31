@@ -12,6 +12,7 @@ import (
 
 var (
 	cacheRecipeList         = make([]model.Recipe, 0)
+	cacheRecipeMap          = make(map[int]model.Recipe)
 	cacheRecipeMaterialsMap = make(map[string][]model.RecipeMaterial)
 )
 
@@ -23,8 +24,10 @@ func ReloadRecipes(ctx context.Context) error {
 		return errors.New("加载菜谱数据失败")
 	}
 
+	recipeMap := make(map[int]model.Recipe)
 	recipeMaterialsMap := make(map[string][]model.RecipeMaterial)
 	for _, recipe := range recipes {
+		recipeMap[recipe.RecipeId] = recipe
 		for _, material := range recipe.Materials {
 			if material.Quantity == 0 || recipe.Time == 0 {
 				continue
@@ -48,6 +51,7 @@ func ReloadRecipes(ctx context.Context) error {
 	}
 	cacheRecipeMaterialsMap = recipeMaterialsMap
 	cacheRecipeList = recipes
+	cacheRecipeMap = recipeMap
 	return nil
 }
 
@@ -59,6 +63,25 @@ func ListAllRecipes(ctx context.Context) ([]model.Recipe, error) {
 		}
 	}
 	return cacheRecipeList, nil
+}
+
+func ListRecipesMapByRecipeIds(ctx context.Context, recipeIds []int) (map[int]model.Recipe, error) {
+	results := make(map[int]model.Recipe, len(recipeIds))
+	if len(recipeIds) == 0 {
+		return results, nil
+	}
+	if len(cacheRecipeMap) == 0 {
+		err := ReloadRecipes(ctx)
+		if err != nil {
+			return results, err
+		}
+	}
+
+	for _, recipeId := range recipeIds {
+		results[recipeId] = cacheRecipeMap[recipeId]
+	}
+
+	return results, nil
 }
 
 func MatchRecipeMaterialName(ctx context.Context, materialName string) ([]string, error) {
